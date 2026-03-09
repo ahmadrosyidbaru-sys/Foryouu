@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wedding of Rosyid & Nuha</title>
+    <title>The Wedding of Nama1 & Nama2</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Poppins:wght@300;400;500&family=Great+Vibes&display=swap" rel="stylesheet">
 
@@ -13,11 +13,83 @@
             --accent: #c5a059;  
             --light: #fdfcf9;   
             --white: #ffffff;
-            --overlay: rgba(10, 25, 49, 0.65);
+            --overlay: rgba(10, 25, 49, 0.7); /* Sedikit lebih gelap agar teks arab lebih jelas */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(--primary); overflow-x: hidden; scroll-behavior: smooth; }
+        body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(--primary); overflow-x: hidden; scroll-behavior: smooth; position: relative;}
+
+        /* --- EFEK SPARKLE BERGERAK --- */
+        .glitter {
+            position: fixed; 
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.25; /* Sedikit diturunkan agar tidak bentrok dengan ornamen baru */
+            animation: drift 30s linear infinite; 
+            z-index: 1;
+            pointer-events: none; 
+        }
+        @keyframes drift { 
+            from { background-position: 0 0; } 
+            to { background-position: 500px 1000px; } 
+        }
+
+        /* --- ORNAMEN ISLAMI TAMBAHAN --- */
+        /* Pola Arabesque transparan di latar belakang light */
+        .section-islamic-bg {
+            position: relative;
+        }
+        .section-islamic-bg::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/islamic-art.png');
+            opacity: 0.04; /* Sangat tipis, hanya tekstur */
+            z-index: -1;
+        }
+
+        /* Ornamen Sudut (Corner) Emas */
+        .corner-ornament {
+            position: fixed;
+            width: 150px; /* Ukuran ornamen pojok */
+            height: 150px;
+            background-image: url('https://wsrv.nl/?url=https://cdn.pixabay.com/photo/2016/12/11/08/30/frame-1898953_960_720.png'); /* Menggunakan frame emas transparan */
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0; /* Mulai dari tidak terlihat */
+            z-index: 100; /* Di atas segalanya */
+            transition: opacity 1.5s ease 1s; /* Muncul perlahan setelah undangan dibuka */
+            pointer-events: none;
+        }
+        .corner-top-left { top: 20px; left: 20px; transform: rotate(0deg); }
+        .corner-top-right { top: 20px; right: 20px; transform: rotate(90deg); }
+        .corner-bottom-left { bottom: 20px; left: 20px; transform: rotate(-90deg); }
+        .corner-bottom-right { bottom: 20px; right: 20px; transform: rotate(180deg); }
+
+        /* Munculkan ornamen saat undangan dibuka */
+        #main-content.visible ~ .corner-ornament {
+            opacity: 0.7; /* Tingkat transparansi ornamen emas */
+        }
+
+        /* Pembatas Islami (Divider) */
+        .islamic-divider {
+            font-family: 'Cinzel', serif;
+            color: var(--accent);
+            font-size: 2rem;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .islamic-divider::before,
+        .islamic-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--accent), transparent);
+            margin: 0 15px;
+        }
 
         /* --- HERO SECTION --- */
         .hero {
@@ -30,9 +102,8 @@
             text-align: center; color: var(--white);
         }
         .hero.opened { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-        .hero-content { padding: 30px; animation: fadeInDown 1.5s ease; }
+        .hero-content { padding: 30px; animation: fadeInDown 1.5s ease; position: relative; z-index: 10000; }
         
-        /* Font nama panggilan di cover dibuat lebih besar & elegan */
         .couple-name-hero { font-family: 'Great Vibes', cursive; font-size: clamp(3.5rem, 10vw, 5rem); color: var(--accent); margin: 10px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); }
         
         .btn-primary { 
@@ -43,117 +114,149 @@
         }
 
         /* --- CONTENT AREA --- */
-        #main-content { opacity: 0; transition: opacity 2s ease; padding-top: 50px; }
+        #main-content { opacity: 0; transition: opacity 2s ease; padding-top: 50px; position: relative; z-index: 2; }
         #main-content.visible { opacity: 1; }
-        .section { padding: 80px 20px; text-align: center; }
-        .container { max-width: 800px; margin: 0 auto; }
+        .section { padding: 80px 20px; text-align: center; position: relative; }
+        .container { max-width: 800px; margin: 0 auto; position: relative; z-index: 3; }
         
-        .salam { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 600; margin-bottom: 20px; color: var(--accent); }
-        .mempelai-detail h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--accent); margin-top: 20px; line-height: 1.4; }
-        .and-sym { font-family: 'Great Vibes', cursive; font-size: 4rem; color: var(--accent); display: block; margin: 15px 0; }
+        .salam { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 600; margin-bottom: 25px; color: var(--accent); text-shadow: 1px 1px 1px rgba(0,0,0,0.1); }
+        .mempelai-detail h2 { font-family: 'Cinzel', serif; font-size: 2rem; color: var(--accent); margin-top: 20px; line-height: 1.4; letter-spacing: 1px;}
+        .and-sym { font-family: 'Great Vibes', cursive; font-size: 4.5rem; color: var(--accent); display: block; margin: 10px 0; }
 
-        .dark-bg { background: var(--primary); color: var(--white); position: relative; overflow: hidden; padding: 100px 20px; }
-        .dark-bg::before { content: ""; position: absolute; inset: 0; background: url('https://www.transparenttextures.com/patterns/islamic-art.png'); opacity: 0.2; }
+        .dark-bg { background: var(--primary); color: var(--white); position: relative; overflow: hidden; padding: 100px 20px; border-top: 3px solid var(--accent); border-bottom: 3px solid var(--accent);}
+        .dark-bg::before { content: ""; position: absolute; inset: 0; background: url('https://www.transparenttextures.com/patterns/islamic-art.png'); opacity: 0.15; }
 
-        .event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 40px; }
-        .event-card { background: var(--white); padding: 40px; border: 1px solid rgba(197, 160, 89, 0.2); box-shadow: 0 15px 35px rgba(0,0,0,0.05); border-radius: 8px; color: var(--primary); }
-        .btn-maps { background: #db4437; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 0.9rem; margin-top: 20px; display: inline-block; transition: 0.3s; font-weight: 500; }
+        .event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 40px; position: relative; z-index: 4;}
+        .event-card { background: var(--white); padding: 40px; border: 2px solid rgba(197, 160, 89, 0.3); box-shadow: 0 15px 35px rgba(0,0,0,0.1); border-radius: 8px; color: var(--primary); position: relative;}
+        
+        /* Menambahkan icon kubah kecil di atas card event */
+        .event-card::after {
+            content: "🕌";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--light);
+            padding: 0 10px;
+            font-size: 1.5rem;
+        }
+
+        .btn-maps { background: #db4437; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 0.9rem; margin-top: 30px; display: inline-block; transition: 0.3s; font-weight: 500; }
 
         .card-box { background: var(--white); padding: 35px; border-radius: 12px; border: 1px solid rgba(197, 160, 89, 0.3); margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; font-family: inherit; }
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; font-family: inherit; background-color: rgba(255,255,255,0.8); }
         .btn-wa { background: #25d366; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: 600; }
 
-        .gift-card { background: #eff6ff; padding: 25px; border-radius: 10px; border: 2px dashed var(--accent); margin-top: 20px; }
+        .gift-card { background: #eff6ff; padding: 25px; border-radius: 10px; border: 2px dashed var(--accent); margin-top: 20px; position: relative; }
         .copy-btn { background: var(--primary); color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-top: 10px; }
 
         .music-control { position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: none; }
-        #music-btn { width: 55px; height: 55px; border-radius: 50%; border: none; background: var(--accent); color: white; cursor: pointer; font-size: 22px; }
+        #music-btn { width: 55px; height: 55px; border-radius: 50%; border: none; background: var(--accent); color: white; cursor: pointer; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .rotate { animation: rotating 5s linear infinite; }
         @keyframes rotating { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .reveal { opacity: 0; transform: translateY(40px); transition: all 1.2s ease-out; }
         .reveal.active { opacity: 1; transform: translateY(0); }
 
-        @media (max-width: 768px) { .event-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { 
+            .event-grid { grid-template-columns: 1fr; } 
+            .corner-ornament { width: 80px; height: 80px; } /* Perkecil ornamen di HP */
+        }
     </style>
 </head>
 <body>
+
+    <div class="glitter"></div>
 
     <div id="player" style="position: absolute; left: -9999px;"></div>
     <div class="music-control" id="music-container"><button id="music-btn" class="rotate">🎵</button></div>
 
     <header class="hero" id="hero-section">
         <div class="hero-content">
-            <p style="letter-spacing: 5px; text-transform: uppercase; font-size: 0.8rem; font-weight: 300;">Walimatul 'Ursy</p>
-            <h1 class="couple-name-hero">Rosyid & Nuha</h1>
-            <div style="margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.3); border-bottom: 1px solid rgba(255,255,255,0.3); padding: 15px;">
-                <p style="font-size: 0.8rem; font-weight: 300;">Kepada Yth. Bapak/Ibu/Saudara/i:</p>
-                <h2 id="nama-penerima" style="color: var(--accent); font-family: 'Cormorant Garamond', serif; font-size: 2rem;">Tamu Undangan</h2>
+            <p style="letter-spacing: 5px; text-transform: uppercase; font-size: 0.8rem; font-weight: 300; color: #eee;">Walimatul 'Ursy</p>
+            <h1 class="couple-name-hero">Nama1 & Nama2</h1>
+            <div style="margin: 25px 0; border-top: 1px solid rgba(255,255,255,0.3); border-bottom: 1px solid rgba(255,255,255,0.3); padding: 20px; background-color: rgba(0,0,0,0.2); border-radius: 8px;">
+                <p style="font-size: 0.85rem; font-weight: 300; color: #ddd; margin-bottom: 5px;">Kepada Yth. Bapak/Ibu/Saudara/i:</p>
+                <h2 id="nama-penerima" style="color: var(--accent); font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">Tamu Undangan</h2>
             </div>
             <button class="btn-primary" onclick="bukaUndangan()">Buka Undangan</button>
         </div>
     </header>
 
     <main id="main-content">
-        <section class="section container reveal">
-            <p class="salam">Assalamu’alaikum Wr. Wb.</p>
-            <p>Maha suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah perkenankanlah kami merangkai kasih sayang dalam ikatan pernikahan:</p>
+        <section class="section container reveal section-islamic-bg">
+            <p class="salam">اَلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَا تُهُ</p>
+            <p style="font-size: 0.95rem; line-height: 1.6;">Maha suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah perkenankanlah kami merangkai kasih sayang dalam ikatan pernikahan:</p>
+            
             <div class="mempelai-detail">
-                <h2>Ahmad Rosyid, S.Kom.</h2>
-                <p>Putra dari Bapak Fulan & Ibu Fulanah</p>
-                <span class="and-sym">&</span>
-                <h2>Nuha Nurlaili Rizqi Maulida, A.Md.Keb.</h2>
-                <p>Putri dari Bapak Fulan & Ibu Fulanah</p>
+                <h2>Nama Mempelai Laki-laki</h2>
+                <p style="color: #777;">Putra dari Bapak Fulan & Ibu Fulanah</p>
+                
+                <div class="islamic-divider">۞</div>
+                
+                <h2>Nama Mempelai Perempuan</h2>
+                <p style="color: #777;">Putri dari Bapak Fulan & Ibu Fulanah</p>
             </div>
         </section>
 
         <section class="section dark-bg">
             <div class="container reveal">
-                <h2 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 30px;">Waktu & Lokasi</h2>
+                <h2 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 10px; font-size: 2.2rem;">Waktu & Lokasi</h2>
+                <p style="color: #ccc; margin-bottom: 40px; font-size: 0.9rem;">Dengan memohon rahmat dan ridho Allah SWT, kami mengundang Bapak/Ibu/Saudara/i untuk hadir dalam acara kami:</p>
+                
                 <div class="event-grid">
                     <div class="event-card">
-                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px;">Akad Nikah</h3>
-                        <p style="font-weight: 600;">Minggu, 12 Juli 2026</p>
-                        <p>08:00 – 10:00 WIB</p>
+                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px; font-size: 1.4rem;">Akad Nikah</h3>
+                        <p style="font-weight: 600; font-size: 1.1rem;">Sabtu, 11 Juli 2026</p>
+                        <p style="color: #555;">08:00 – 10:00 WIB</p>
                         <hr style="margin: 15px 0; opacity: 0.1;">
-                        <p style="font-size: 0.85rem;"><b>Kediaman Mempelai Wanita</b><br>Lokasi sesuai titik Google Maps</p>
+                        <p style="font-size: 0.85rem; color: #666;"><b>Kediaman Mempelai Wanita</b><br>Jl. Contoh Lokasi No. 123, Kota Anda</p>
                     </div>
                     <div class="event-card">
-                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px;">Resepsi</h3>
-                        <p style="font-weight: 600;">Minggu, 12 Juli 2026</p>
-                        <p>11:00 – Selesai</p>
+                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px; font-size: 1.4rem;">Resepsi</h3>
+                        <p style="font-weight: 600; font-size: 1.1rem;">Minggu, 12 Juli 2026</p>
+                        <p style="color: #555;">11:00 – Selesai</p>
                         <hr style="margin: 15px 0; opacity: 0.1;">
-                        <p style="font-size: 0.85rem;"><b>Kediaman Mempelai Wanita</b><br>Lokasi sesuai titik Google Maps</p>
+                        <p style="font-size: 0.85rem; color: #666;"><b>Kediaman Mempelai Wanita</b><br>Lokasi sesuai titik Google Maps</p>
                     </div>
                 </div>
-                <a href="https://maps.app.goo.gl/8Wo23FHgreuMGBTy6" target="_blank" class="btn-maps">📍 Buka Rute Google Maps</a>
+                <a href="https://maps.app.goo.gl/xxxxx" target="_blank" class="btn-maps">📍 Buka Rute Google Maps</a>
             </div>
         </section>
 
-        <section class="section container reveal">
-            <h2 style="font-family: 'Cinzel', serif; color: var(--accent);">Kartu Ucapan</h2>
+        <section class="section container reveal section-islamic-bg">
+            <h2 style="font-family: 'Cinzel', serif; color: var(--accent); font-size: 2rem; margin-bottom: 10px;">Kartu Ucapan</h2>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 25px;">Berikan ucapan selamat dan doa restu Anda kepada kedua mempelai:</p>
             <div class="card-box">
                 <input type="text" id="nama-pengirim" placeholder="Nama Anda">
                 <textarea id="pesan-doa" rows="4" placeholder="Tuliskan ucapan & doa restu..."></textarea>
-                <button class="btn-wa" onclick="kirimWA()">Kirim Ucapan ke WhatsApp</button>
+                <button class="btn-wa" onclick="kirimWA()">Kirim Ucapan ke WhatsApp 💬</button>
             </div>
         </section>
 
         <section class="section container reveal">
-            <h2 style="font-family: 'Cinzel', serif; color: var(--accent);">Wedding Gift</h2>
-            <p style="font-size: 0.9rem;">Bagi Bapak/Ibu yang ingin memberikan tanda kasih secara digital, dapat melalui:</p>
+            <h2 style="font-family: 'Cinzel', serif; color: var(--accent); font-size: 2rem; margin-bottom: 10px;">Wedding Gift</h2>
+            <p style="font-size: 0.9rem; color: #666;">Bagi Bapak/Ibu yang ingin memberikan tanda kasih secara digital, dapat melalui:</p>
             <div class="gift-card">
-                <p style="font-weight: 500; color: #118eea;">DANA</p>
-                <p style="font-weight: 600; font-size: 1.5rem; margin: 5px 0;">085716731106</p>
-                <p>a.n Ahmad Rosyid</p>
-                <button class="copy-btn" onclick="copyNo()">Salin Nomor DANA</button>
+                <div style="position: absolute; top: 10px; right: 15px; font-size: 1.2rem;">🎁</div>
+                <p style="font-weight: 500; color: #118eea; font-size: 1.1rem;">DANA</p>
+                <p style="font-weight: 700; font-size: 1.8rem; margin: 5px 0; color: var(--primary); letter-spacing: 1px;">085716731106</p>
+                <p style="color: #555;">a.n Ahmad Rosyid</p>
+                <button class="copy-btn" onclick="copyNo()">Salin Nomor DANA 📋</button>
             </div>
         </section>
 
-        <footer class="section" style="background: #f0ede6; padding-bottom: 100px;">
-            <p>Atas kehadiran dan doa restunya, kami ucapkan terima kasih.</p>
-            <h2 style="font-family: 'Cinzel', serif; font-size: 1.8rem; margin-top: 15px; color: var(--accent);">Rosyid & Nuha</h2>
+        <footer class="section" style="background: #f0ede6; padding-bottom: 100px; border-top: 1px solid rgba(197, 160, 89, 0.2);">
+            <p style="font-size: 0.95rem; color: #555;">Atas kehadiran dan doa restunya, kami ucapkan terima kasih.</p>
+            <p class="salam" style="font-size: 1.2rem; margin-top: 10px; margin-bottom: 5px;">Wassalamu'alaikum Warahmatullahi Wabarakatuh</p>
+            <p style="color: #777; margin-bottom: 15px;">Kami yang berbahagia,</p>
+            <h2 style="font-family: 'Cinzel', serif; font-size: 2rem; margin-top: 10px; color: var(--accent); letter-spacing: 1px;">Nama1 & Nama2</h2>
         </footer>
     </main>
+
+    <div class="corner-ornament corner-top-left"></div>
+    <div class="corner-ornament corner-top-right"></div>
+    <div class="corner-ornament corner-bottom-left"></div>
+    <div class="corner-ornament corner-bottom-right"></div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -195,13 +298,13 @@
             const nama = document.getElementById('nama-pengirim').value;
             const pesan = document.getElementById('pesan-doa').value;
             if(!nama || !pesan) { alert("Harap isi nama dan pesan ya!"); return; }
-            const teks = `Halo Rosyid %26 Nuha, saya ${nama}.%0A%0A${pesan}`;
+            const teks = `Halo Nama1 %26 Nama2, saya ${nama}.%0A%0A${pesan}`;
             window.open(`https://wa.me/6285716731106?text=${teks}`, '_blank');
         }
 
         function copyNo() {
             navigator.clipboard.writeText("085716731106");
-            alert("Nomor Dana berhasil disalin!");
+            alert("Nomor DANA berhasil disalin! Terima kasih atas tanda kasih Anda.");
         }
 
         let isPlaying = true;
