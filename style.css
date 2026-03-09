@@ -1,0 +1,80 @@
+:root {
+    --primary: #0a1931; /* Deep Royal Blue */
+    --accent: #c5a059;  /* Muted Gold */
+    --light: #fdfcf9;   /* Ivory White */
+    --white: #ffffff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(--primary); overflow-x: hidden; line-height: 1.6; }
+
+/* Hero Section */
+.hero {
+    height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: url('https://images.unsplash.com/photo-1544077960-604201fe74bc?q=80&w=2071&auto=format&fit=crop') center/cover no-repeat;
+    position: relative; text-align: center; color: var(--white);
+}
+.hero-overlay { position: absolute; inset: 0; background: rgba(10, 25, 49, 0.8); }
+.hero-content { position: relative; z-index: 10; padding: 20px; }
+
+.couple-name { font-family: 'Cinzel', serif; font-size: clamp(2.5rem, 8vw, 4rem); color: var(--accent); margin: 15px 0; letter-spacing: 5px; }
+.top-title { letter-spacing: 5px; font-size: 0.9rem; font-weight: 300; opacity: 0.9; }
+
+/* Section Styling */
+.section { padding: 100px 20px; text-align: center; }
+.container { max-width: 800px; margin: 0 auto; }
+.dark-bg { background: var(--primary); color: var(--white); }
+.section-title { font-family: 'Cinzel', serif; font-size: 1.8rem; margin-bottom: 2.5rem; color: var(--accent); letter-spacing: 3px; }
+
+/* Intro / Mempelai */
+.salam { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; }
+.opening-text { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; margin-bottom: 40px; font-style: italic; }
+.mempelai-detail h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--accent); margin-top: 20px; }
+.and-sym { font-family: 'Great Vibes', cursive; font-size: 3rem; color: var(--accent); display: block; margin: 10px 0; }
+
+/* Quote Section */
+.arabic { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; margin-bottom: 20px; line-height: 2.5; }
+.verse { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; max-width: 600px; margin: 0 auto 15px; opacity: 0.9; }
+.surah { font-size: 0.8rem; letter-spacing: 1px; color: var(--accent); }
+
+/* Event Grid */
+.event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
+.event-card { background: var(--white); padding: 30px; border: 1px solid rgba(197, 160, 89, 0.2); box-shadow: 0 5px 15px rgba(0,0,0,0.02); }
+.event-card h3 { font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px; border-bottom: 1px solid var(--accent); padding-bottom: 10px; }
+.date { font-weight: 600; font-size: 1.1rem; }
+
+/* Digital Gift */
+.bank-card { background: var(--primary); color: var(--white); padding: 50px; border-top: 4px solid var(--accent); }
+.bank-name { font-weight: 600; letter-spacing: 2px; opacity: 0.8; }
+.account-number { font-size: 2rem; letter-spacing: 5px; color: var(--accent); margin: 15px 0; }
+
+/* Buttons & Forms */
+.btn-primary { 
+    background: var(--accent); color: var(--white); border: none; padding: 14px 40px; 
+    font-family: 'Cinzel', serif; letter-spacing: 2px; cursor: pointer; transition: 0.4s; 
+}
+.btn-primary:hover { background: #ae8a46; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+.btn-copy { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 10px 20px; cursor: pointer; }
+
+#rsvp-form input, #rsvp-form textarea { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #ddd; font-family: inherit; }
+
+/* Footer */
+.footer { padding: 80px 20px; background: #f0ede6; text-align: center; }
+.footer-salam { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; margin: 20px 0; font-weight: 600; }
+.footer-names { font-family: 'Cinzel', serif; color: var(--accent); font-size: 1.5rem; }
+
+/* Floating Music */
+.music-control { position: fixed; bottom: 30px; right: 30px; z-index: 100; display: none; }
+#music-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--accent); color: white; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.rotate { animation: rotating 5s linear infinite; }
+@keyframes rotating { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Reveal Animations */
+.reveal { opacity: 0; transform: translateY(30px); transition: all 1.2s ease-out; }
+.reveal.active { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 768px) {
+    .event-grid { grid-template-columns: 1fr; }
+    .account-number { font-size: 1.5rem; }
+}

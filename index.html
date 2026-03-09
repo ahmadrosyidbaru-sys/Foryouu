@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Wedding of Rosyid & Nuha</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Poppins:wght@300;400;500&family=Great+Vibes&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0a1931; 
+            --accent: #c5a059;  
+            --light: #fdfcf9;   
+            --white: #ffffff;
+            --overlay: rgba(10, 25, 49, 0.65);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(--primary); overflow-x: hidden; scroll-behavior: smooth; }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            background-image: linear-gradient(var(--overlay), var(--overlay)), 
+                              url('https://wsrv.nl/?url=https://drive.google.com/uc?id=1NUwYfEBqfnLp8N8CnhFdjjynQzK-T9PP');
+            background-size: cover; background-position: center;
+            position: fixed; width: 100%; top: 0; left: 0; z-index: 9999;
+            transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1), opacity 1s ease;
+            text-align: center; color: var(--white);
+        }
+        .hero.opened { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        .hero-content { padding: 30px; animation: fadeInDown 1.5s ease; }
+        
+        /* Font nama panggilan di cover dibuat lebih besar & elegan */
+        .couple-name-hero { font-family: 'Great Vibes', cursive; font-size: clamp(3.5rem, 10vw, 5rem); color: var(--accent); margin: 10px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--accent), #ae8a46); color: var(--white); 
+            border: none; padding: 16px 45px; font-family: 'Cinzel', serif; 
+            letter-spacing: 2px; cursor: pointer; transition: 0.4s; margin-top: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 1rem; border-radius: 4px; text-decoration: none; display: inline-block;
+        }
+
+        /* --- CONTENT AREA --- */
+        #main-content { opacity: 0; transition: opacity 2s ease; padding-top: 50px; }
+        #main-content.visible { opacity: 1; }
+        .section { padding: 80px 20px; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        .salam { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 600; margin-bottom: 20px; color: var(--accent); }
+        .mempelai-detail h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--accent); margin-top: 20px; line-height: 1.4; }
+        .and-sym { font-family: 'Great Vibes', cursive; font-size: 4rem; color: var(--accent); display: block; margin: 15px 0; }
+
+        .dark-bg { background: var(--primary); color: var(--white); position: relative; overflow: hidden; padding: 100px 20px; }
+        .dark-bg::before { content: ""; position: absolute; inset: 0; background: url('https://www.transparenttextures.com/patterns/islamic-art.png'); opacity: 0.2; }
+
+        .event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 40px; }
+        .event-card { background: var(--white); padding: 40px; border: 1px solid rgba(197, 160, 89, 0.2); box-shadow: 0 15px 35px rgba(0,0,0,0.05); border-radius: 8px; color: var(--primary); }
+        .btn-maps { background: #db4437; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 0.9rem; margin-top: 20px; display: inline-block; transition: 0.3s; font-weight: 500; }
+
+        .card-box { background: var(--white); padding: 35px; border-radius: 12px; border: 1px solid rgba(197, 160, 89, 0.3); margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; font-family: inherit; }
+        .btn-wa { background: #25d366; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: 600; }
+
+        .gift-card { background: #eff6ff; padding: 25px; border-radius: 10px; border: 2px dashed var(--accent); margin-top: 20px; }
+        .copy-btn { background: var(--primary); color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-top: 10px; }
+
+        .music-control { position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: none; }
+        #music-btn { width: 55px; height: 55px; border-radius: 50%; border: none; background: var(--accent); color: white; cursor: pointer; font-size: 22px; }
+        .rotate { animation: rotating 5s linear infinite; }
+        @keyframes rotating { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 1.2s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) { .event-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div id="player" style="position: absolute; left: -9999px;"></div>
+    <div class="music-control" id="music-container"><button id="music-btn" class="rotate">🎵</button></div>
+
+    <header class="hero" id="hero-section">
+        <div class="hero-content">
+            <p style="letter-spacing: 5px; text-transform: uppercase; font-size: 0.8rem; font-weight: 300;">Walimatul 'Ursy</p>
+            <h1 class="couple-name-hero">Rosyid & Nuha</h1>
+            <div style="margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.3); border-bottom: 1px solid rgba(255,255,255,0.3); padding: 15px;">
+                <p style="font-size: 0.8rem; font-weight: 300;">Kepada Yth. Bapak/Ibu/Saudara/i:</p>
+                <h2 id="nama-penerima" style="color: var(--accent); font-family: 'Cormorant Garamond', serif; font-size: 2rem;">Tamu Undangan</h2>
+            </div>
+            <button class="btn-primary" onclick="bukaUndangan()">Buka Undangan</button>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <section class="section container reveal">
+            <p class="salam">Assalamu’alaikum Wr. Wb.</p>
+            <p>Maha suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah perkenankanlah kami merangkai kasih sayang dalam ikatan pernikahan:</p>
+            <div class="mempelai-detail">
+                <h2>Ahmad Rosyid, S.Kom.</h2>
+                <p>Putra dari Bapak Fulan & Ibu Fulanah</p>
+                <span class="and-sym">&</span>
+                <h2>Nuha Nurlaili Rizqi Maulida, A.Md.Keb.</h2>
+                <p>Putri dari Bapak Fulan & Ibu Fulanah</p>
+            </div>
+        </section>
+
+        <section class="section dark-bg">
+            <div class="container reveal">
+                <h2 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 30px;">Waktu & Lokasi</h2>
+                <div class="event-grid">
+                    <div class="event-card">
+                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px;">Akad Nikah</h3>
+                        <p style="font-weight: 600;">Minggu, 12 Juli 2026</p>
+                        <p>08:00 – 10:00 WIB</p>
+                        <hr style="margin: 15px 0; opacity: 0.1;">
+                        <p style="font-size: 0.85rem;"><b>Kediaman Mempelai Wanita</b><br>Lokasi sesuai titik Google Maps</p>
+                    </div>
+                    <div class="event-card">
+                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 15px;">Resepsi</h3>
+                        <p style="font-weight: 600;">Minggu, 12 Juli 2026</p>
+                        <p>11:00 – Selesai</p>
+                        <hr style="margin: 15px 0; opacity: 0.1;">
+                        <p style="font-size: 0.85rem;"><b>Kediaman Mempelai Wanita</b><br>Lokasi sesuai titik Google Maps</p>
+                    </div>
+                </div>
+                <a href="https://maps.app.goo.gl/8Wo23FHgreuMGBTy6" target="_blank" class="btn-maps">📍 Buka Rute Google Maps</a>
+            </div>
+        </section>
+
+        <section class="section container reveal">
+            <h2 style="font-family: 'Cinzel', serif; color: var(--accent);">Kartu Ucapan</h2>
+            <div class="card-box">
+                <input type="text" id="nama-pengirim" placeholder="Nama Anda">
+                <textarea id="pesan-doa" rows="4" placeholder="Tuliskan ucapan & doa restu..."></textarea>
+                <button class="btn-wa" onclick="kirimWA()">Kirim Ucapan ke WhatsApp</button>
+            </div>
+        </section>
+
+        <section class="section container reveal">
+            <h2 style="font-family: 'Cinzel', serif; color: var(--accent);">Wedding Gift</h2>
+            <p style="font-size: 0.9rem;">Bagi Bapak/Ibu yang ingin memberikan tanda kasih secara digital, dapat melalui:</p>
+            <div class="gift-card">
+                <p style="font-weight: 500; color: #118eea;">DANA</p>
+                <p style="font-weight: 600; font-size: 1.5rem; margin: 5px 0;">085716731106</p>
+                <p>a.n Ahmad Rosyid</p>
+                <button class="copy-btn" onclick="copyNo()">Salin Nomor DANA</button>
+            </div>
+        </section>
+
+        <footer class="section" style="background: #f0ede6; padding-bottom: 100px;">
+            <p>Atas kehadiran dan doa restunya, kami ucapkan terima kasih.</p>
+            <h2 style="font-family: 'Cinzel', serif; font-size: 1.8rem; margin-top: 15px; color: var(--accent);">Rosyid & Nuha</h2>
+        </footer>
+    </main>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('nama-penerima').innerText = urlParams.get('to') || 'Tamu Undangan';
+
+        let player;
+        const VIDEO_ID = '_ooM-zhA580'; 
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '0', width: '0', videoId: VIDEO_ID,
+                playerVars: { 'autoplay': 0, 'loop': 1, 'playlist': VIDEO_ID, 'mute': 1 },
+            });
+        }
+
+        function bukaUndangan() {
+            document.getElementById('hero-section').classList.add('opened');
+            document.getElementById('main-content').classList.add('visible');
+            document.getElementById('music-container').style.display = 'block';
+            if (player) { player.unMute(); player.setVolume(80); player.playVideo(); }
+            window.addEventListener('scroll', reveal);
+            setTimeout(reveal, 1000);
+        }
+
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                if (elementTop < windowHeight - 100) reveals[i].classList.add("active");
+            }
+        }
+
+        function kirimWA() {
+            const nama = document.getElementById('nama-pengirim').value;
+            const pesan = document.getElementById('pesan-doa').value;
+            if(!nama || !pesan) { alert("Harap isi nama dan pesan ya!"); return; }
+            const teks = `Halo Rosyid %26 Nuha, saya ${nama}.%0A%0A${pesan}`;
+            window.open(`https://wa.me/6285716731106?text=${teks}`, '_blank');
+        }
+
+        function copyNo() {
+            navigator.clipboard.writeText("085716731106");
+            alert("Nomor Dana berhasil disalin!");
+        }
+
+        let isPlaying = true;
+        document.getElementById('music-btn').onclick = function() {
+            if (isPlaying) { player.pauseVideo(); this.classList.remove('rotate'); }
+            else { player.playVideo(); this.classList.add('rotate'); }
+            isPlaying = !isPlaying;
+        };
+    </script>
+</body>
+</html>
