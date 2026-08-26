@@ -1,1842 +1,786 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RestoKu - Digital Menu & Ordering System</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome for Premium Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voisa Web - Realtime Voice Call</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'radar': 'radarScan 2s linear infinite',
+            'wave-float': 'waveFloat 4s ease-in-out infinite',
+          },
+          keyframes: {
+            radarScan: {
+              '0%': { transform: 'scale(0.8)', opacity: '0.8' },
+              '100%': { transform: 'scale(2.2)', opacity: '0' }
+            },
+            waveFloat: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' }
+            }
+          }
         }
-        /* Hide scrollbars but keep functionality */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
-</head>
-<body class="bg-stone-50 text-stone-800 min-h-screen flex flex-col">
-
-    <!-- DEVELOPER MODE SWITCHER (Sticky at top for easy testing/demo) -->
-    <div class="bg-stone-900 text-white py-2 px-4 flex flex-wrap justify-between items-center text-xs gap-2 z-50 sticky top-0 shadow-md">
-        <div class="flex items-center gap-2">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-            <span class="font-medium text-stone-300">DEMO MODE ACTIVE (Local Storage Sync)</span>
-        </div>
-        <div class="flex items-center gap-1 bg-stone-800 p-1 rounded-lg">
-            <button onclick="switchView('customer')" id="btn-view-customer" class="px-3 py-1.5 rounded-md font-semibold transition-all bg-amber-500 text-stone-950">
-                <i class="fa-solid fa-utensils mr-1"></i> Meja Order
-            </button>
-            <button onclick="switchView('admin')" id="btn-view-admin" class="px-3 py-1.5 rounded-md font-semibold transition-all text-stone-300 hover:text-white">
-                <i class="fa-solid fa-chart-line mr-1"></i> Admin / Kasir
-            </button>
-            <button onclick="switchView('kitchen')" id="btn-view-kitchen" class="px-3 py-1.5 rounded-md font-semibold transition-all text-stone-300 hover:text-white">
-                <i class="fa-solid fa-fire-burner mr-1"></i> Dapur
-            </button>
-            <button id="btn-auth-lock" onclick="lockSystem()" class="hidden px-2 py-1.5 rounded-md font-bold text-red-400 hover:text-red-300 transition-all hover:bg-stone-700/50" title="Kunci Akses Admin/Dapur">
-                <i class="fa-solid fa-lock"></i> Lock
-            </button>
-        </div>
-    </div>
-
-    <!-- MAIN APP WRAPPER -->
-    <main class="flex-1 flex flex-col relative">
-
-        <!-- ========================================== -->
-        <!-- CUSTOMER VIEW (MEJA ORDER) -->
-        <!-- ========================================== -->
-        <section id="view-customer" class="flex-1 flex flex-col">
-            
-            <!-- Welcome / Table Selector (Shown if no ?meja= parameter in URL) -->
-            <div id="table-selector" class="hidden fixed inset-0 bg-stone-900/80 backdrop-blur-md z-40 flex items-center justify-center p-4">
-                <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl text-center transform transition-all scale-100">
-                    <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                        <i class="fa-solid fa-qrcode"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-stone-900 mb-2">Selamat Datang di RestoKu!</h3>
-                    <p class="text-stone-500 text-sm mb-6">Silakan masukkan Nomor Meja Anda untuk mulai memesan langsung dari gadget Anda.</p>
-                    <div class="flex gap-2 max-w-xs mx-auto mb-6">
-                        <input type="number" id="input-table-num" placeholder="No. Meja (1-20)" class="w-full text-center text-lg font-bold border-2 border-stone-200 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-3">
-                    </div>
-                    <button onclick="setTableFromSelector()" class="w-full bg-amber-500 text-stone-950 font-bold py-3.5 px-6 rounded-xl hover:bg-amber-600 active:scale-95 transition-all shadow-lg shadow-amber-500/20">
-                        Masuk Menu & Pesan
-                    </button>
-                </div>
-            </div>
-
-            <!-- Customer Header -->
-            <header class="bg-white border-b border-stone-200 sticky top-[44px] z-30 px-4 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="bg-amber-500 text-stone-950 p-2.5 rounded-2xl flex items-center justify-center font-black">
-                        <i class="fa-solid fa-mug-hot text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-extrabold text-lg text-stone-900 tracking-tight">RestoKu</h1>
-                        <p class="text-xs text-stone-500 flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Sistem Order Digital
-                        </p>
-                    </div>
-                </div>
-                <div id="badge-table" class="bg-stone-900 text-white font-bold text-sm px-4 py-2 rounded-xl flex items-center gap-2">
-                    <i class="fa-solid fa-chair text-amber-400"></i> Meja <span id="current-table-display">--</span>
-                </div>
-            </header>
-
-            <!-- Menu Content Area -->
-            <div class="px-4 py-4 flex-1 pb-24">
-                <!-- Banner Promo -->
-                <div class="bg-gradient-to-r from-amber-500 to-amber-600 rounded-3xl p-5 text-stone-950 mb-6 shadow-xl relative overflow-hidden">
-                    <div class="absolute right-0 bottom-0 opacity-10 pointer-events-none">
-                        <i class="fa-solid fa-pizza-slice text-[120px]"></i>
-                    </div>
-                    <span class="bg-stone-950 text-white text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full">Spesial Hari Ini</span>
-                    <h2 class="text-xl font-black mt-2 leading-tight">Makan Kenyang, Bayar Sat-Set lewat HP!</h2>
-                    <p class="text-xs text-amber-950 mt-1 opacity-90 font-medium">Scan QRIS otomatis terverifikasi langsung ke dapur.</p>
-                </div>
-
-                <!-- Categories -->
-                <div class="flex gap-2 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4">
-                    <button onclick="filterCategory('semua')" class="category-btn active bg-amber-500 text-stone-950 font-bold px-5 py-2.5 rounded-full text-sm transition-all flex items-center gap-2 shadow-md">
-                        Semua Menu
-                    </button>
-                    <button onclick="filterCategory('Makanan')" class="category-btn bg-white text-stone-600 border border-stone-200 font-semibold px-5 py-2.5 rounded-full text-sm transition-all flex items-center gap-2 shadow-sm hover:bg-stone-50">
-                        鵠 Makanan
-                    </button>
-                    <button onclick="filterCategory('Minuman')" class="category-btn bg-white text-stone-600 border border-stone-200 font-semibold px-5 py-2.5 rounded-full text-sm transition-all flex items-center gap-2 shadow-sm hover:bg-stone-50">
-                        ･､ Minuman
-                    </button>
-                    <button onclick="filterCategory('Cemilan')" class="category-btn bg-white text-stone-600 border border-stone-200 font-semibold px-5 py-2.5 rounded-full text-sm transition-all flex items-center gap-2 shadow-sm hover:bg-stone-50">
-                        此 Cemilan
-                    </button>
-                </div>
-
-                <!-- Menu Grid -->
-                <div id="customer-menu-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Menu items generated here dynamicly -->
-                </div>
-            </div>
-
-            <!-- Floating Cart Panel (Sticky bottom) -->
-            <div id="floating-cart" class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-stone-200 z-30 transition-all transform translate-y-full flex justify-between items-center shadow-lg">
-                <div class="flex items-center gap-3">
-                    <div class="relative bg-amber-500 text-stone-950 w-12 h-12 rounded-2xl flex items-center justify-center text-lg shadow-lg">
-                        <i class="fa-solid fa-basket-shopping"></i>
-                        <span id="cart-badge" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">0</span>
-                    </div>
-                    <div>
-                        <p class="text-xs text-stone-500 font-medium">Total Pesanan</p>
-                        <p id="cart-total-text" class="text-md font-extrabold text-stone-900">Rp 0</p>
-                    </div>
-                </div>
-                <button onclick="toggleCheckoutModal(true)" class="bg-amber-500 text-stone-950 font-extrabold px-6 py-3.5 rounded-2xl hover:bg-amber-600 active:scale-95 transition-all shadow-md shadow-amber-500/10 flex items-center gap-2">
-                    Lanjut Checkout <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-
-            <!-- CHECKOUT DRAWER / MODAL -->
-            <div id="checkout-modal" class="hidden fixed inset-0 bg-stone-950/70 backdrop-blur-sm z-40 flex items-end justify-center sm:items-center p-0 sm:p-4 transition-all">
-                <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
-                    <!-- Modal Header -->
-                    <div class="p-5 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-receipt text-amber-500 text-lg"></i>
-                            <h3 class="text-lg font-bold text-stone-900">Detail Pesanan Kamu</h3>
-                        </div>
-                        <button onclick="toggleCheckoutModal(false)" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition-all">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-
-                    <!-- Modal Body / Checkout Form -->
-                    <div class="p-5 flex-1 space-y-6">
-                        <!-- Items list inside cart -->
-                        <div class="space-y-4">
-                            <h4 class="text-xs font-bold text-stone-400 uppercase tracking-wider">Item Yang Dipesan</h4>
-                            <div id="checkout-items-list" class="space-y-3">
-                                <!-- Dynamic checkout items -->
-                            </div>
-                        </div>
-
-                        <!-- Notes/Nama Pelanggan -->
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block">Nama Pemesan</label>
-                            <input type="text" id="order-customer-name" placeholder="Masukkan nama panggilan kamu" class="w-full bg-stone-50 border border-stone-200 focus:border-amber-500 focus:bg-white focus:outline-none rounded-xl px-4 py-3 font-semibold text-stone-800 transition-all">
-                        </div>
-
-                        <!-- Catatan Tambahan/Request khusus -->
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block">Catatan / Request Khusus (Opsional)</label>
-                            <textarea id="order-customer-notes" placeholder="Contoh: Pedas sedang, es batu sedikit, daun bawang dipisah, dll." rows="2" class="w-full bg-stone-50 border border-stone-200 focus:border-amber-500 focus:bg-white focus:outline-none rounded-xl px-4 py-3 font-semibold text-stone-800 text-xs transition-all resize-none"></textarea>
-                        </div>
-
-                        <!-- Payment Method Toggle -->
-                        <div class="space-y-3">
-                            <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block">Pilih Cara Pembayaran</label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <label class="border-2 border-stone-200 hover:border-amber-500 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-all relative" id="pay-cash-card">
-                                    <input type="radio" name="payment_method" value="Cash" class="absolute top-3 right-3 accent-amber-500" checked onchange="togglePaymentSection('Cash')">
-                                    <div class="w-10 h-10 bg-amber-50 rounded-xl text-amber-600 flex items-center justify-center text-lg">
-                                        <i class="fa-solid fa-wallet"></i>
-                                    </div>
-                                    <div class="text-center">
-                                        <p class="font-bold text-sm text-stone-800">Tunai / Cash</p>
-                                        <p class="text-[10px] text-stone-400">Bayar di Kasir</p>
-                                    </div>
-                                </label>
-                                <label class="border-2 border-stone-200 hover:border-amber-500 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-all relative" id="pay-qris-card">
-                                    <input type="radio" name="payment_method" value="QRIS" class="absolute top-3 right-3 accent-amber-500" onchange="togglePaymentSection('QRIS')">
-                                    <div class="w-10 h-10 bg-indigo-50 rounded-xl text-indigo-600 flex items-center justify-center text-lg">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                    </div>
-                                    <div class="text-center">
-                                        <p class="font-bold text-sm text-stone-800">QRIS Mandiri</p>
-                                        <p class="text-[10px] text-indigo-400 font-semibold">Bayar Sat-set</p>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Hidden QRIS Container -->
-                        <div id="qris-payment-area" class="hidden border border-indigo-100 bg-indigo-50/50 rounded-2xl p-5 text-center space-y-4 transition-all">
-                            <div class="bg-white p-4 rounded-xl inline-block shadow-md">
-                                <!-- Dummy QR Code -->
-                                <img src="https://placehold.co/200x200/ffffff/000000?text=MOCK-QRIS-RESTOKU" alt="QRIS Code" class="w-40 h-40 object-contain mx-auto">
-                            </div>
-                            <div>
-                                <p class="text-xs text-stone-500 font-semibold uppercase tracking-wider">Pindai QRIS Di Atas</p>
-                                <p id="qris-total-payment" class="text-lg font-black text-indigo-950">Rp 0</p>
-                            </div>
-                            <div class="border-t border-dashed border-indigo-200 pt-4 text-left">
-                                <label class="text-xs font-bold text-stone-500 block mb-2">Upload Bukti Bayar QRIS</label>
-                                <input type="file" id="input-qris-receipt" accept="image/*" class="text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer w-full">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Modal Footer -->
-                    <div class="p-5 border-t border-stone-100 bg-stone-50 sticky bottom-0 z-10">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-sm text-stone-500 font-medium">Grand Total</span>
-                            <span id="checkout-grand-total" class="text-lg font-black text-amber-600">Rp 0</span>
-                        </div>
-                        <button onclick="submitOrder()" class="w-full bg-amber-500 text-stone-950 font-extrabold py-4 px-6 rounded-2xl hover:bg-amber-600 active:scale-95 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ORDER STATUS / TRACKING OVERLAY (Shows once successfully ordered) -->
-            <div id="order-status-screen" class="hidden fixed inset-0 bg-white z-50 flex flex-col">
-                <div class="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto">
-                    <div class="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-xl shadow-emerald-100/50">
-                        <i class="fa-solid fa-circle-check animate-bounce"></i>
-                    </div>
-                    <h3 class="text-2xl font-black text-stone-900 mb-2">Pesanan Dikirim!</h3>
-                    <p class="text-stone-500 text-sm mb-6">Meja <span id="track-table-num" class="font-bold text-stone-800">--</span> atas nama <span id="track-customer-name" class="font-bold text-stone-800">--</span></p>
-
-                    <!-- Order Items summary inside tracking -->
-                    <div class="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 text-left space-y-3 mb-6">
-                        <div class="flex justify-between items-center border-b border-stone-200 pb-2">
-                            <span class="text-xs font-bold text-stone-400 uppercase">Ringkasan Pesanan</span>
-                            <span class="text-xs bg-amber-100 text-amber-700 font-bold px-2.5 py-1 rounded-full" id="track-status-badge">Pending</span>
-                        </div>
-                        <div id="track-items-summary" class="space-y-2 text-sm text-stone-600">
-                            <!-- Items list -->
-                        </div>
-                    </div>
-
-                    <!-- Progress timeline tracker -->
-                    <div class="w-full space-y-6 text-left max-w-xs mb-8">
-                        <div class="flex items-start gap-4">
-                            <div class="flex flex-col items-center">
-                                <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
-                                    <i class="fa-solid fa-check"></i>
-                                </div>
-                                <div class="w-0.5 h-10 bg-emerald-500"></div>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-stone-900 text-sm">Pesanan Dikirim</h4>
-                                <p class="text-xs text-stone-500">Sedang diverifikasi oleh kasir.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-4">
-                            <div class="flex flex-col items-center">
-                                <div id="timeline-cook-circle" class="w-8 h-8 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center text-xs font-bold">
-                                    <i class="fa-solid fa-kitchen-set"></i>
-                                </div>
-                                <div id="timeline-cook-bar" class="w-0.5 h-10 bg-stone-200"></div>
-                            </div>
-                            <div>
-                                <h4 id="timeline-cook-title" class="font-bold text-stone-400 text-sm">Sedang Dimasak</h4>
-                                <p class="text-xs text-stone-500">Koki di dapur sedang menyiapkan hidangan.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-4">
-                            <div class="flex flex-col items-center">
-                                <div id="timeline-ready-circle" class="w-8 h-8 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center text-xs font-bold">
-                                    <i class="fa-solid fa-circle-check"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <h4 id="timeline-ready-title" class="font-bold text-stone-400 text-sm">Selesai / Diantar</h4>
-                                <p class="text-xs text-stone-500">Selesai diantar ke Meja Anda. Selamat menikmati!</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button onclick="backToOrderMenu()" class="w-full bg-stone-900 text-white font-extrabold py-4 px-6 rounded-2xl hover:bg-stone-800 active:scale-95 transition-all">
-                        Pesan Menu Tambahan
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- ========================================== -->
-        <!-- ADMIN / CASHIER VIEW -->
-        <!-- ========================================== -->
-        <section id="view-admin" class="hidden flex-1 flex-col">
-            <header class="bg-white border-b border-stone-200 sticky top-[44px] z-30 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <h1 class="font-extrabold text-xl text-stone-900">Dashboard Kasir & Resto</h1>
-                    <p class="text-xs text-stone-500">Kelola semua pesanan meja & kontrol ketersediaan menu resto</p>
-                </div>
-                <!-- Admin Menu Selector Tabs -->
-                <div class="flex bg-stone-100 p-1 rounded-xl">
-                    <button onclick="switchAdminTab('orders')" id="btn-admin-tab-orders" class="px-4 py-2 rounded-lg font-bold text-xs bg-white text-stone-900 shadow-sm transition-all">
-                        Pesanan Masuk
-                    </button>
-                    <button onclick="switchAdminTab('menu')" id="btn-admin-tab-menu" class="px-4 py-2 rounded-lg font-bold text-xs text-stone-500 hover:text-stone-800 transition-all">
-                        Kelola Menu
-                    </button>
-                    <button onclick="switchAdminTab('integration')" id="btn-admin-tab-integration" class="px-4 py-2 rounded-lg font-bold text-xs text-stone-500 hover:text-stone-800 transition-all">
-                        Google Sheets Integrasi
-                    </button>
-                </div>
-            </header>
-
-            <div class="p-6 flex-1 space-y-6 max-w-7xl mx-auto w-full">
-                
-                <!-- TAB: ORDERS PANEL -->
-                <div id="admin-tab-orders" class="space-y-6">
-                    <!-- Stats Overviews -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-list-check"></i>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-stone-400 uppercase">Sisa Pending</p>
-                                <p id="admin-stats-pending" class="text-lg font-extrabold text-stone-900">0</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-kitchen-set"></i>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-stone-400 uppercase">Dimasak</p>
-                                <p id="admin-stats-cooking" class="text-lg font-extrabold text-stone-900">0</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-circle-check"></i>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-stone-400 uppercase">Selesai</p>
-                                <p id="admin-stats-done" class="text-lg font-extrabold text-stone-900">0</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-rupiah-sign"></i>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold text-stone-400 uppercase">Omzet Lunas</p>
-                                <p id="admin-stats-sales" class="text-lg font-extrabold text-emerald-600">Rp 0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Active Orders Table/Card Container -->
-                    <div class="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm">
-                        <div class="p-5 border-b border-stone-100 flex justify-between items-center flex-wrap gap-2">
-                            <h3 class="font-extrabold text-stone-800 text-sm uppercase tracking-wider">Antrean Pesanan Restoran</h3>
-                            <button onclick="clearAllOrders()" class="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all">
-                                <i class="fa-solid fa-trash-can"></i> Reset Semua Demo Order
-                            </button>
-                        </div>
-
-                        <!-- Table -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-sm">
-                                <thead>
-                                    <tr class="bg-stone-50 border-b border-stone-200 text-stone-400 font-bold text-[10px] uppercase">
-                                        <th class="p-4">Struk / Waktu</th>
-                                        <th class="p-4">Meja / Pemesan</th>
-                                        <th class="p-4">Item & Catatan</th>
-                                        <th class="p-4">Pembayaran & Bukti</th>
-                                        <th class="p-4 text-center">Status</th>
-                                        <th class="p-4 text-center">Aksi Operasional</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-orders-table-body" class="divide-y divide-stone-100">
-                                    <!-- Dynamic populated rows -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="admin-orders-empty-state" class="hidden p-10 text-center text-stone-400">
-                            <i class="fa-solid fa-circle-info text-2xl mb-2"></i>
-                            <p class="font-semibold text-sm">Belum ada pesanan masuk saat ini.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB: MENU MANAGEMENT -->
-                <div id="admin-tab-menu" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="font-extrabold text-stone-800 text-sm uppercase tracking-wider">Kelola Daftar Menu Restoran</h3>
-                        <button onclick="toggleAddMenuModal(true)" class="bg-amber-500 text-stone-950 font-extrabold text-xs px-4 py-2.5 rounded-xl hover:bg-amber-600 flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/15">
-                            <i class="fa-solid fa-plus"></i> Tambah Menu Baru
-                        </button>
-                    </div>
-
-                    <!-- Manage Menu Cards Grid -->
-                    <div id="admin-menu-management-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Dynamic menu configuration cards -->
-                    </div>
-                </div>
-
-                <!-- TAB: GOOGLE SHEETS INTEGRATION -->
-                <div id="admin-tab-integration" class="hidden space-y-6">
-                    <div class="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm space-y-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-file-excel"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-black text-stone-900 leading-tight">Integrasikan Ke Google Sheets Gratis</h3>
-                                <p class="text-xs text-stone-500">Mulai sinkronisasi data pesanan pelanggan ke tabel spreadsheets secara real-time</p>
-                            </div>
-                        </div>
-
-                        <!-- Sync configuration form -->
-                        <div class="space-y-4 max-w-xl">
-                            <div>
-                                <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block mb-2">Google Apps Script Web App URL</label>
-                                <div class="flex gap-2">
-                                    <input type="url" id="google-sheets-url" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 border border-stone-200 focus:border-emerald-500 focus:outline-none rounded-xl px-4 py-3 font-semibold text-stone-800 transition-all text-sm">
-                                    <button onclick="saveGoogleSheetsURL()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-6 py-3.5 rounded-xl transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5">
-                                        <i class="fa-solid fa-floppy-disk"></i> Simpan URL
-                                    </button>
-                                </div>
-                                <p class="text-[10px] text-stone-400 mt-2">Status Koneksi: <span id="sync-connection-status" class="font-extrabold text-amber-500">Demo/Offline Mode</span></p>
-                            </div>
-                        </div>
-
-                        <!-- Steps to Integration -->
-                        <div class="border-t border-stone-100 pt-6 space-y-4">
-                            <h4 class="text-xs font-bold text-stone-800 uppercase tracking-wider">Langkah-langkah Integrasi (Sangat Mudah):</h4>
-                            <ol class="list-decimal pl-5 text-sm text-stone-600 space-y-3">
-                                <li>Buat file <b>Google Sheets</b> baru bernama <code>Database Restoranku</code> di Google Drive Anda.</li>
-                                <li>Buat satu tab (sheet) dan beri nama persis <code>Pesanan</code>.</li>
-                                <li>Buka menu <b>Ekstensi > Apps Script</b> di dalam Google Sheets Anda.</li>
-                                <li>Hapus semua kode bawaan lalu salin dan tempelkan kode di bawah ini:</li>
-                            </ol>
-
-                            <!-- GAS Code Block -->
-                            <div class="relative bg-stone-900 text-stone-200 rounded-2xl p-4 text-xs font-mono max-h-60 overflow-y-auto no-scrollbar border border-stone-800">
-                                <button onclick="copyAppsScriptCode()" class="absolute top-2 right-2 bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold px-3 py-1.5 rounded-lg border border-stone-700 transition-all flex items-center gap-1">
-                                    <i class="fa-solid fa-copy"></i> Copy
-                                </button>
-                                <pre id="apps-script-code-block">
-function doPost(e) {
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pesanan");
-    if (!sheet) {
-      sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Pesanan");
-      sheet.appendRow(["ID Pesanan", "Waktu", "No Meja", "Daftar Menu", "Catatan", "Total Harga", "Metode", "Bukti Bayar (Base64)", "Status"]);
+      }
     }
-    
-    var data = JSON.parse(e.postData.contents);
-    sheet.appendRow([
-      data.id,
-      new Date(),
-      data.meja,
-      data.items,
-      data.notes,
-      data.total,
-      data.metode,
-      data.bukti,
-      data.status
-    ]);
-    
-    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}</pre>
-                            </div>
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0b0f19;
+      color: #f3f4f6;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-hover:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-x-hidden selection:bg-indigo-500 selection:text-white">
 
-                            <ol class="list-decimal pl-5 text-sm text-stone-600 space-y-3" start="5">
-                                <li>Klik tombol <b>Terapkan / Deploy > Penerapan baru</b> di pojok kanan atas Apps Script.</li>
-                                <li>Atur Jenis Penerapan: <b>Aplikasi Web</b>. Atur Akses: <b>Siapa saja (Anyone)</b>.</li>
-                                <li>Klik Terapkan / Deploy, berikan izin Google, lalu salin **Tautan Aplikasi Web** yang dihasilkan.</li>
-                                <li>Tempelkan tautan tersebut pada kolom isian di atas dan klik **Simpan URL**.</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL: ADD NEW MENU -->
-            <div id="add-menu-modal" class="hidden fixed inset-0 bg-stone-950/70 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-                <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
-                    <button onclick="toggleAddMenuModal(false)" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition-all">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                    <h3 class="text-lg font-bold text-stone-900 mb-4">Tambah Menu Kuliner Baru</h3>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block mb-1">Nama Menu</label>
-                            <input type="text" id="add-menu-name" placeholder="Misal: Sate Ayam Madura" class="w-full border border-stone-200 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 font-semibold text-sm">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block mb-1">Harga (Angka)</label>
-                                <input type="number" id="add-menu-price" placeholder="25000" class="w-full border border-stone-200 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 font-semibold text-sm">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block mb-1">Kategori</label>
-                                <select id="add-menu-category" class="w-full border border-stone-200 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 font-semibold text-sm bg-white">
-                                    <option value="Makanan">Makanan</option>
-                                    <option value="Minuman">Minuman</option>
-                                    <option value="Cemilan">Cemilan</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block mb-1">URL Foto (opsional)</label>
-                            <input type="url" id="add-menu-photo" placeholder="https://unsplash.com/..." class="w-full border border-stone-200 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 font-semibold text-sm">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-stone-400 uppercase tracking-wider block mb-1">Deskripsi Hidangan</label>
-                            <textarea id="add-menu-desc" rows="3" placeholder="Deskripsi singkat hidangan..." class="w-full border border-stone-200 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 font-semibold text-sm"></textarea>
-                        </div>
-                        
-                        <button onclick="createNewMenu()" class="w-full bg-amber-500 text-stone-950 font-extrabold py-3.5 px-6 rounded-2xl hover:bg-amber-600 active:scale-95 transition-all shadow-lg shadow-amber-500/20">
-                            Masukkan Ke Daftar Menu
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL: IMAGE VIEWER (BUKTI TRANSAKSI) -->
-            <div id="image-viewer-modal" class="hidden fixed inset-0 bg-stone-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div class="bg-white rounded-3xl p-4 max-w-sm w-full shadow-2xl relative">
-                    <button onclick="closeImageViewer()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition-all z-10">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                    <h3 class="text-sm font-bold text-stone-800 mb-3 text-center">Bukti Transfer Pelanggan</h3>
-                    <img id="image-viewer-src" src="" alt="Bukti Transfer" class="w-full rounded-2xl h-96 object-cover bg-stone-100">
-                </div>
-            </div>
-        </section>
-
-        <!-- ========================================== -->
-        <!-- KITCHEN VIEW (ANTI-RIBU/BUSY SCREEN) -->
-        <!-- ========================================== -->
-        <section id="view-kitchen" class="hidden flex-1 flex-col bg-stone-900 text-white">
-            <header class="bg-stone-950 border-b border-stone-800 sticky top-[44px] z-30 px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="bg-amber-500 text-stone-950 w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-md">
-                        <i class="fa-solid fa-fire-burner"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-extrabold text-lg">ANTREAN DAPUR RESTOKU</h1>
-                        <p class="text-xs text-stone-500">Tampilan khusus Chef & Asisten Masak dapur</p>
-                    </div>
-                </div>
-                <div class="bg-stone-800 text-amber-400 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2">
-                    <i class="fa-solid fa-hourglass-half animate-spin"></i> Real-time Sync Active
-                </div>
-            </header>
-
-            <div class="p-6 flex-1 max-w-7xl mx-auto w-full">
-                <!-- Kitchen orders list grid -->
-                <div id="kitchen-orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Kitchen active tickets generated here dynamicly -->
-                </div>
-
-                <!-- Empty kitchen state -->
-                <div id="kitchen-empty-state" class="hidden p-16 text-center text-stone-500 flex flex-col items-center justify-center">
-                    <div class="w-16 h-16 rounded-full bg-stone-800 flex items-center justify-center mb-4 text-stone-600 text-2xl">
-                        <i class="fa-solid fa-check-double"></i>
-                    </div>
-                    <p class="font-bold text-lg text-stone-300 mb-1">Semua Antrean Selesai!</p>
-                    <p class="text-xs text-stone-500">Dapur sedang bersih dari pesanan masak saat ini.</p>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- PASSWORD MODAL FOR ADMIN/KITCHEN VIEW -->
-    <div id="password-modal" class="hidden fixed inset-0 bg-stone-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center relative border border-stone-100 transform scale-100 transition-all">
-            <button onclick="closePasswordModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition-all">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-            <h3 class="text-lg font-bold text-stone-900 mb-1">Akses Terbatas</h3>
-            <p class="text-stone-500 text-xs mb-5">Halaman <span id="password-target-display" class="font-bold text-stone-800">--</span> memerlukan sandi otorisasi resto.</p>
-            
-            <div class="mb-5">
-                <input type="password" id="input-auth-password" maxlength="6" placeholder="******" class="w-full text-center text-2xl font-bold tracking-[0.4em] border-2 border-stone-200 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-3 bg-stone-50 transition-all">
-            </div>
-            
-            <button onclick="submitPassword()" class="w-full bg-stone-900 text-white font-extrabold py-4 px-6 rounded-2xl hover:bg-stone-800 active:scale-95 transition-all shadow-lg shadow-stone-900/10">
-                Verifikasi Sandi
-            </button>
+  <!-- Top Navigation Header -->
+  <header class="w-full px-4 lg:px-8 py-4 glass-card border-b border-gray-800/80 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid font-bold fa-microphone-lines text-white text-xl"></i>
         </div>
+        <div>
+          <h1 class="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-indigo-300">
+            Voisa<span class="text-indigo-400">Web</span>
+          </h1>
+          <p class="text-xs text-gray-400 font-medium">Realtime Voice Chat & Call</p>
+        </div>
+      </div>
+
+      <!-- Status Peer ID badge -->
+      <div class="flex items-center gap-3">
+        <div id="connectionBadge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/90 border border-gray-700/60 text-xs font-semibold text-gray-300">
+          <span class="relative flex h-2.5 w-2.5">
+            <span id="statusPingPulse" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span id="statusPingDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span id="statusText">Peer Ready</span>
+        </div>
+
+        <button id="btnSettings" class="p-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition">
+          <i class="fa-solid fa-sliders text-base"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Stage -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col justify-center items-center gap-6">
+
+    <!-- Toast / Alert Container -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- State 1: Idle / Lobby Card -->
+    <div id="lobbySection" class="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden border border-gray-800">
+      <div class="absolute -top-24 -right-24 w-60 h-60 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-24 w-60 h-60 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="w-20 h-20 rounded-3xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-5 text-indigo-400 text-3xl shadow-inner">
+        <i class="fa-solid fa-headset animate-wave-float"></i>
+      </div>
+
+      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Obrolan Suara Anonim</h2>
+      <p class="text-gray-400 text-sm sm:text-base max-w-md mb-8">
+        Temukan teman ngobrol secara acak tanpa perlu daftar. Atau buat ruangan pribadi dengan kode ruangan!
+      </p>
+
+      <!-- ID Info -->
+      <div class="mb-6 flex flex-col items-center gap-2 w-full max-w-xs">
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-widest">ID Ruangan Kamu</label>
+        <div class="flex items-center justify-between w-full bg-gray-900/80 border border-gray-700 p-2 rounded-xl">
+          <span id="myPeerIdDisplay" class="text-indigo-400 font-mono text-sm px-2 truncate">Menghubungkan...</span>
+          <button id="btnCopyId" class="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition text-xs" title="Salin ID">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Matchmaking Modes -->
+      <div class="w-full space-y-4 mb-8">
+        <!-- Option A: Matchmaking Random -->
+        <button id="btnStartRandom" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl shadow-indigo-600/30 hover:shadow-indigo-500/50 transition transform active:scale-95 flex items-center justify-center gap-3">
+          <i class="fa-solid fa-shuffle"></i>
+          <span>Cari Teman Ngobrol (Random)</span>
+        </button>
+
+        <div class="flex items-center gap-4 my-2">
+          <div class="h-px bg-gray-800 flex-1"></div>
+          <span class="text-xs uppercase font-semibold text-gray-500 tracking-wider">atau hubungi via kode</span>
+          <div class="h-px bg-gray-800 flex-1"></div>
+        </div>
+
+        <!-- Option B: Direct Room ID -->
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="inputRoomCode" placeholder="Masukkan ID Ruangan Teman..." class="flex-1 bg-gray-900/90 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition">
+          <button id="btnJoinRoom" class="py-3 px-6 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-semibold text-sm transition flex items-center justify-center gap-2 border border-gray-700">
+            <i class="fa-solid fa-phone"></i>
+            <span>Sambungkan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Option C: Echo Test / AI Simulation -->
+      <div class="w-full pt-4 border-t border-gray-800/80 flex items-center justify-between">
+        <div class="text-left">
+          <p class="text-xs font-semibold text-gray-300">Uji Mikrofon (Self-Test)</p>
+          <p class="text-xs text-gray-500">Tes suara kamu tanpa lawan bicara</p>
+        </div>
+        <button id="btnEchoTest" class="py-2 px-4 rounded-xl bg-gray-800/80 hover:bg-gray-700 text-indigo-400 text-xs font-bold border border-indigo-500/20 hover:border-indigo-500/40 transition">
+          <i class="fa-solid fa-vial mr-1.5"></i> Tes Suara
+        </button>
+      </div>
     </div>
 
-    <!-- CELEBRATION FULL SCREEN OVERLAY -->
-    <div id="celebration-screen" class="hidden fixed inset-0 bg-stone-950/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center text-center p-6 transition-all duration-500 opacity-0">
-        <div class="space-y-6 max-w-sm">
-            <div class="w-32 h-32 bg-gradient-to-tr from-amber-400 to-amber-600 text-stone-950 rounded-full flex items-center justify-center text-5xl mx-auto shadow-2xl shadow-amber-500/20 animate-bounce">
-                <i class="fa-solid fa-utensils"></i>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-3xl font-black text-amber-400 tracking-tight">Selamat Menikmati!</h2>
-                <p class="text-stone-300 text-sm font-medium leading-relaxed">Pesanan lezat Anda telah selesai disiapkan dan diantar ke meja. Selamat menyantap hidangan spesial kami!</p>
-            </div>
-            <div class="flex justify-center gap-1.5 py-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" style="animation-delay: 0.1s"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" style="animation-delay: 0.3s"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping" style="animation-delay: 0.5s"></span>
-            </div>
+    <!-- State 2: Matchmaking Radar / Searching Screen -->
+    <div id="searchingSection" class="hidden w-full max-w-xl glass-card rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl relative">
+      <div class="relative w-40 h-40 flex items-center justify-center my-6">
+        <div class="absolute inset-0 rounded-full border border-indigo-500/30 animate-radar"></div>
+        <div class="absolute inset-2 rounded-full border border-indigo-500/20 animate-radar" style="animation-delay: 0.5s"></div>
+        <div class="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/50 flex items-center justify-center z-10 shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-radar text-indigo-400 text-4xl animate-spin" style="animation-duration: 4s;"></i>
         </div>
+      </div>
+
+      <h3 class="text-xl font-bold text-white mb-1">Mencari Pasangan Ngobrol...</h3>
+      <p class="text-xs text-gray-400 mb-6">Menghubungkan kamu dengan pengguna lain secara acak</p>
+
+      <button id="btnCancelSearch" class="py-2.5 px-6 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-sm transition">
+        Batalkan Pencarian
+      </button>
     </div>
 
-    <!-- RATING & REVIEW MODAL -->
-    <div id="review-modal" class="hidden fixed inset-0 bg-stone-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center relative border border-stone-100 transform scale-100 transition-all">
-            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                <i class="fa-solid fa-star-half-stroke"></i>
-            </div>
-            <h3 class="text-lg font-bold text-stone-900 mb-1">Kasih Ulasan Yuk!</h3>
-            <p class="text-stone-500 text-xs mb-6">Bagaimana cita rasa makanan dan pelayanan kami hari ini?</p>
-            
-            <div class="flex justify-center gap-2 mb-6 text-3xl">
-                <button onclick="setReviewRating(1)" class="review-star-btn text-stone-200 transition-colors focus:outline-none"><i class="fa-solid fa-star"></i></button>
-                <button onclick="setReviewRating(2)" class="review-star-btn text-stone-200 transition-colors focus:outline-none"><i class="fa-solid fa-star"></i></button>
-                <button onclick="setReviewRating(3)" class="review-star-btn text-stone-200 transition-colors focus:outline-none"><i class="fa-solid fa-star"></i></button>
-                <button onclick="setReviewRating(4)" class="review-star-btn text-stone-200 transition-colors focus:outline-none"><i class="fa-solid fa-star"></i></button>
-                <button onclick="setReviewRating(5)" class="review-star-btn text-stone-200 transition-colors focus:outline-none"><i class="fa-solid fa-star"></i></button>
-            </div>
+    <!-- State 3: Active Voice Call Stage -->
+    <div id="callSection" class="hidden w-full flex flex-col items-center gap-6">
 
-            <div class="mb-5">
-                <textarea id="input-review-text" rows="3" placeholder="Tulis masukan/pujian kamu di sini (opsional)..." class="w-full border border-stone-200 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-3 bg-stone-50 text-xs font-semibold transition-all text-stone-800 resize-none"></textarea>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="skipReview()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-extrabold py-3.5 px-4 rounded-2xl transition-all text-xs">
-                    Lewati / Skip
-                </button>
-                <button onclick="submitReview()" class="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-extrabold py-3.5 px-4 rounded-2xl transition-all text-xs shadow-md shadow-amber-500/10">
-                    Kirim Ulasan
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- CUSTOM FLOATING MESSAGE BOX (TOAST/ALERT MODAL) -->
-    <div id="custom-alert-toast" class="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 bg-stone-900 text-white rounded-2xl px-5 py-3.5 shadow-xl transition-all transform translate-y-[-100px] opacity-0 flex items-center gap-3 border border-stone-800 max-w-sm w-[90%]">
-        <div id="custom-alert-icon" class="text-amber-500 text-lg">
-            <i class="fa-solid fa-circle-exclamation"></i>
-        </div>
-        <p id="custom-alert-message" class="text-xs font-semibold leading-normal"></p>
-    </div>
-
-    <script>
-        // SYSTEM STATE & CONFIG
-        let activeView = 'customer';
-        let currentCategory = 'semua';
-        let cart = [];
-        let tableNumber = null;
-        let googleSheetsURL = localStorage.getItem('google_sheets_url') || '';
-        let targetedView = null; // Temporary hold for authorized navigation
-        let activeReviewRating = 0; // State variables for customer feedback
-        let lastOrderCount = 0; // Tracks the total number of orders for audio notification checks
+      <!-- Avatar & Audio Visualizer Container -->
+      <div class="w-full max-w-2xl glass-card rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden border border-gray-800">
         
-        // DEFAULT INITIAL MENU DATA
-        const defaultMenu = [
-            {
-                id: 'M01',
-                name: 'Nasi Goreng Special Restoku',
-                price: 25000,
-                category: 'Makanan',
-                desc: 'Nasi goreng harum kaya bumbu dengan ayam suwir, telur mata sapi, kerupuk udang garing, dan acar segar.',
-                photo: 'https://images.unsplash.com/photo-1603133872878-6966b46170c4?w=500',
-                status: 'Tersedia'
-            },
-            {
-                id: 'M02',
-                name: 'Mie Goreng Ayam Kampung',
-                price: 23000,
-                category: 'Makanan',
-                desc: 'Mie telur tebal kenyal, ditumis kencang di wok wajan besar dengan bumbu kecap pekat manis gurih khas Jawa.',
-                photo: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500',
-                status: 'Tersedia'
-            },
-            {
-                id: 'M03',
-                name: 'Es Teh Manis Segar',
-                price: 5000,
-                category: 'Minuman',
-                desc: 'Seduhan teh melati wangi premium disajikan dingin dengan es kristal murni dan gula tebu murni cair.',
-                photo: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500',
-                status: 'Tersedia'
-            },
-            {
-                id: 'M04',
-                name: 'Es Jeruk Nipis Madu',
-                price: 8000,
-                category: 'Minuman',
-                desc: 'Perasan jeruk nipis alami murni, dipadu dengan manis madu asli, sangat menyegarkan tenggorokan.',
-                photo: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=500',
-                status: 'Tersedia'
-            },
-            {
-                id: 'M05',
-                name: 'Kentang Goreng Keju Tabur',
-                price: 15000,
-                category: 'Cemilan',
-                desc: 'Kentang potong crinkle garing diluar lembut didalam, dibalur keju parmesan bubuk gurih asin berkualitas.',
-                photo: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500',
-                status: 'Tersedia'
-            }
-        ];
+        <!-- Timer & Call Quality Header -->
+        <div class="w-full flex items-center justify-between mb-8">
+          <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="callTypeLabel">Voice Call</span>
+          </div>
+          <div class="text-lg font-mono font-bold text-gray-300 tracking-wider" id="callTimer">00:00</div>
+        </div>
 
-        // Ensure menu exists in LocalStorage
-        if (!localStorage.getItem('menu_list')) {
-            localStorage.setItem('menu_list', JSON.stringify(defaultMenu));
-        }
+        <!-- Canvas Equalizer & Avatar Stage -->
+        <div class="relative w-full h-56 flex items-center justify-center">
+          
+          <!-- Background Dynamic Audio Canvas Visualizer -->
+          <canvas id="audioVisualizer" class="absolute inset-0 w-full h-full rounded-2xl"></canvas>
 
-        // Initialize orders array in LocalStorage if not exists
-        if (!localStorage.getItem('orders_list')) {
-            localStorage.setItem('orders_list', JSON.stringify([]));
-        }
-
-        // Helper: Get active Menu
-        function getMenuList() {
-            return JSON.parse(localStorage.getItem('menu_list'));
-        }
-
-        // Helper: Save Menu List
-        function saveMenuList(list) {
-            localStorage.setItem('menu_list', JSON.stringify(list));
-            renderCustomerMenu();
-            renderAdminMenu();
-        }
-
-        // Helper: Get active Orders
-        function getOrdersList() {
-            return JSON.parse(localStorage.getItem('orders_list'));
-        }
-
-        // Helper: Save Orders List
-        function saveOrdersList(list) {
-            localStorage.setItem('orders_list', JSON.stringify(list));
-            renderAdminOrders();
-            renderKitchenOrders();
-        }
-
-        // PLAY NOTIFICATION SOUND (Simple, modern, crisp "Ding" sound)
-        function playNotificationSound() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                
-                // Menggunakan gelombang sine murni untuk menghasilkan suara "ping" digital yang bersih
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(1100, audioCtx.currentTime); // Frekuensi 1100Hz (nada tinggi jernih)
-                
-                // Set volume awal
-                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                // Turunkan volume dengan sangat cepat (decay) untuk meniru suara lonceng mini/alert modern
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-                
-                osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                
-                osc.start();
-                // Matikan osilator setelah desimal waktu selesai
-                osc.stop(audioCtx.currentTime + 0.35);
-            } catch (e) {
-                console.warn("Audio playback blocked or unsupported by browser context:", e);
-            }
-        }
-
-        // Custom Toast Notification system (Replacing forbidden alert/confirm)
-        function showNotification(message, type = 'success') {
-            const toast = document.getElementById('custom-alert-toast');
-            const icon = document.getElementById('custom-alert-icon');
-            const text = document.getElementById('custom-alert-message');
-
-            text.textContent = message;
-            if (type === 'success') {
-                icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
-            } else if (type === 'error') {
-                icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
-            } else {
-                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500"></i>';
-            }
-
-            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-[-100px]', 'opacity-0');
-                toast.classList.remove('translate-y-0', 'opacity-100');
-            }, 3000);
-        }
-
-        // RENDER CUSTOMER MENU GRID
-        function renderCustomerMenu() {
-            const grid = document.getElementById('customer-menu-grid');
-            const menuList = getMenuList();
-            grid.innerHTML = '';
-
-            const filteredList = currentCategory === 'semua' 
-                ? menuList 
-                : menuList.filter(item => item.category === currentCategory);
-
-            filteredList.forEach(item => {
-                const isOut = item.status === 'Habis';
-                const cartQty = getCartItemQty(item.id);
-                
-                const itemHTML = `
-                    <div class="bg-white rounded-3xl overflow-hidden border border-stone-200/60 shadow-sm flex flex-col relative group transition-all duration-300 hover:shadow-md ${isOut ? 'opacity-65' : ''}">
-                        ${isOut ? '<div class="absolute inset-0 bg-stone-900/40 z-10 flex items-center justify-center font-bold text-white tracking-widest text-sm rounded-3xl select-none backdrop-blur-[1px]"><span class="bg-red-500/90 py-1.5 px-4 rounded-xl shadow-lg">SOLD OUT</span></div>' : ''}
-                        
-                        <!-- Image Container with aspect-ratio -->
-                        <div class="relative w-full aspect-video overflow-hidden bg-stone-100">
-                            <img src="${item.photo || 'https://placehold.co/500x300/f5f5f4/a8a29e?text=' + encodeURIComponent(item.name)}" 
-                                 alt="${item.name}" 
-                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                 onerror="this.src='https://placehold.co/500x300/f5f5f4/a8a29e?text=No+Photo'">
-                        </div>
-
-                        <!-- Card Body -->
-                        <div class="p-4 flex-1 flex flex-col justify-between">
-                            <div>
-                                <div class="flex justify-between items-start gap-2 mb-1.5">
-                                    <h3 class="font-extrabold text-stone-900 leading-snug text-sm">${item.name}</h3>
-                                    <span class="text-[10px] uppercase font-extrabold tracking-wider bg-stone-100 text-stone-500 px-2 py-0.5 rounded-md self-start">${item.category}</span>
-                                </div>
-                                <p class="text-[11px] text-stone-500 leading-relaxed line-clamp-2 mb-4">${item.desc || 'Deskripsi masakan masih kosong.'}</p>
-                            </div>
-
-                            <div class="flex justify-between items-center mt-auto">
-                                <span class="font-black text-amber-600 text-sm">Rp ${item.price.toLocaleString('id-ID')}</span>
-                                
-                                ${!isOut ? (
-                                    cartQty > 0 ? `
-                                        <div class="flex items-center gap-2 bg-amber-100 border border-amber-300 px-2 py-1 rounded-xl">
-                                            <button onclick="changeCartQty('${item.id}', -1)" class="w-7 h-7 rounded-lg bg-white hover:bg-amber-200 text-stone-950 font-black flex items-center justify-center transition-all shadow-sm">
-                                                <i class="fa-solid fa-minus text-xs"></i>
-                                            </button>
-                                            <span class="font-bold text-xs text-stone-800 px-1 select-none">${cartQty}</span>
-                                            <button onclick="changeCartQty('${item.id}', 1)" class="w-7 h-7 rounded-lg bg-white hover:bg-amber-200 text-stone-950 font-black flex items-center justify-center transition-all shadow-sm">
-                                                <i class="fa-solid fa-plus text-xs"></i>
-                                            </button>
-                                        </div>
-                                    ` : `
-                                        <button onclick="addToCart('${item.id}')" class="bg-amber-500 text-stone-950 font-black text-xs px-3.5 py-2.5 rounded-xl hover:bg-amber-600 flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/10 active:scale-95">
-                                            <i class="fa-solid fa-cart-plus"></i> Tambah
-                                        </button>
-                                    `
-                                ) : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                grid.insertAdjacentHTML('beforeend', itemHTML);
-            });
-        }
-
-        // FILTER BY CATEGORIES
-        function filterCategory(category) {
-            currentCategory = category;
-            const buttons = document.querySelectorAll('.category-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('bg-amber-500', 'text-stone-950', 'font-bold', 'active', 'shadow-md');
-                btn.classList.add('bg-white', 'text-stone-600', 'border', 'border-stone-200', 'font-semibold', 'shadow-sm');
-            });
-
-            const activeBtn = event.currentTarget;
-            activeBtn.classList.remove('bg-white', 'text-stone-600', 'border', 'border-stone-200', 'font-semibold', 'shadow-sm');
-            activeBtn.classList.add('bg-amber-500', 'text-stone-950', 'font-bold', 'active', 'shadow-md');
-
-            renderCustomerMenu();
-        }
-
-        // GET CART ITEM QUANTITY
-        function getCartItemQty(id) {
-            const cartItem = cart.find(item => item.id === id);
-            return cartItem ? cartItem.qty : 0;
-        }
-
-        // ADD TO CART DIRECTLY
-        function addToCart(id) {
-            const menu = getMenuList().find(item => item.id === id);
-            if (!menu || menu.status === 'Habis') return;
-
-            const existing = cart.find(item => item.id === id);
-            if (existing) {
-                existing.qty += 1;
-            } else {
-                cart.push({ id: menu.id, name: menu.name, price: menu.price, qty: 1 });
-            }
-            updateCartFloatingPanel();
-            renderCustomerMenu();
-        }
-
-        // DECREMENT/INCREMENT INSIDE ITEM CARD
-        function changeCartQty(id, value) {
-            const existing = cart.find(item => item.id === id);
-            if (!existing) return;
-
-            existing.qty += value;
-            if (existing.qty <= 0) {
-                cart = cart.filter(item => item.id !== id);
-            }
-            updateCartFloatingPanel();
-            renderCustomerMenu();
-        }
-
-        // UPDATE CART FOOTER DRAWER AT THE BOTTOM
-        function updateCartFloatingPanel() {
-            const panel = document.getElementById('floating-cart');
-            const badge = document.getElementById('cart-badge');
-            const totalText = document.getElementById('cart-total-text');
-
-            if (cart.length === 0) {
-                panel.classList.add('translate-y-full');
-                return;
-            }
-
-            let count = 0;
-            let sum = 0;
-            cart.forEach(item => {
-                count += item.qty;
-                sum += (item.qty * item.price);
-            });
-
-            badge.textContent = count;
-            totalText.textContent = `Rp ${sum.toLocaleString('id-ID')}`;
-            panel.classList.remove('translate-y-full');
-        }
-
-        // TOGGLE CHECKOUT POPUP DIALOG
-        function toggleCheckoutModal(show) {
-            const modal = document.getElementById('checkout-modal');
-            if (show) {
-                renderCheckoutItems();
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
-        // POPULATE CHECKOUT DIALOG CART LIST
-        function renderCheckoutItems() {
-            const container = document.getElementById('checkout-items-list');
-            const grandTotalText = document.getElementById('checkout-grand-total');
-            const qrisTotalText = document.getElementById('qris-total-payment');
-            container.innerHTML = '';
-
-            let sum = 0;
-            cart.forEach(item => {
-                sum += (item.qty * item.price);
-                const listHTML = `
-                    <div class="flex justify-between items-center py-2 border-b border-stone-100 text-sm">
-                        <div>
-                            <span class="font-extrabold text-stone-950">${item.qty}x</span>
-                            <span class="font-medium text-stone-800 ml-1.5">${item.name}</span>
-                        </div>
-                        <span class="font-bold text-stone-800">Rp ${(item.qty * item.price).toLocaleString('id-ID')}</span>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', listHTML);
-            });
-
-            grandTotalText.textContent = `Rp ${sum.toLocaleString('id-ID')}`;
-            qrisTotalText.textContent = `Rp ${sum.toLocaleString('id-ID')}`;
-        }
-
-        // TOGGLE VIEW AREA OF SPECIFIC PAYMENT (Cash vs QRIS)
-        function togglePaymentSection(method) {
-            const qrisArea = document.getElementById('qris-payment-area');
-            const cardCash = document.getElementById('pay-cash-card');
-            const cardQris = document.getElementById('pay-qris-card');
-
-            if (method === 'QRIS') {
-                qrisArea.classList.remove('hidden');
-                cardQris.classList.add('border-amber-500', 'bg-indigo-50/20');
-                cardCash.classList.remove('border-amber-500', 'bg-indigo-50/20');
-            } else {
-                qrisArea.classList.add('hidden');
-                cardCash.classList.add('border-amber-500', 'bg-indigo-50/20');
-                cardQris.classList.remove('border-amber-500', 'bg-indigo-50/20');
-            }
-        }
-
-        // SUBMIT CUSTOMER ORDER TO SYSTEM
-        function submitOrder() {
-            const customerName = document.getElementById('order-customer-name').value.trim();
-            const customerNotes = document.getElementById('order-customer-notes').value.trim();
-            const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
-            const inputReceipt = document.getElementById('input-qris-receipt');
-
-            if (!customerName) {
-                showNotification('Harap masukkan nama pemesan terlebih dahulu.', 'error');
-                return;
-            }
-
-            let receiptBase64 = '';
-            if (paymentMethod === 'QRIS') {
-                if (inputReceipt.files.length === 0) {
-                    showNotification('Harap unggah screenshot bukti transfer QRIS.', 'error');
-                    return;
-                }
-                // Mock reading image to simulate uploading
-                receiptBase64 = "MOCK_IMAGE_DATA_UPLOADED";
-            }
-
-            // Create Order Payload Object
-            const newOrder = {
-                id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
-                meja: tableNumber || "01",
-                customer: customerName,
-                notes: customerNotes || 'Tidak ada catatan',
-                items: cart.map(item => `${item.qty}x ${item.name}`).join(', '),
-                total: cart.reduce((sum, item) => sum + (item.qty * item.price), 0),
-                metode: paymentMethod,
-                bukti: receiptBase64 ? 'Uploaded (Klik Lihat)' : 'Cash / Tanpa Bukti',
-                status: 'Pending',
-                timestamp: new Date().toLocaleString('id-ID')
-            };
-
-            // Save order locally to orders_list
-            const list = getOrdersList();
-            list.unshift(newOrder); // Add to beginning
-            saveOrdersList(list);
-
-            // Execute post sync to Google Sheets if URL provided
-            if (googleSheetsURL) {
-                sendToGoogleSheets(newOrder);
-            }
-
-            // Open Tracking/Success Screen
-            showOrderTracking(newOrder);
+          <!-- Peer Avatars -->
+          <div class="relative z-10 flex items-center justify-center gap-8 sm:gap-14">
             
-            // Clear cart & notes
-            cart = [];
-            document.getElementById('order-customer-notes').value = '';
-            updateCartFloatingPanel();
-            toggleCheckoutModal(false);
-            showNotification('Pesanan berhasil dikirim ke antrean dapur!', 'success');
-        }
-
-        // SHOW POPUP PROGRESS TRACKING SCREEN
-        function showOrderTracking(order) {
-            const trackScreen = document.getElementById('order-status-screen');
-            document.getElementById('track-table-num').textContent = order.meja;
-            document.getElementById('track-customer-name').textContent = order.customer;
-            document.getElementById('track-status-badge').textContent = order.status;
-
-            const summaryContainer = document.getElementById('track-items-summary');
-            summaryContainer.innerHTML = '';
-            
-            const itemHTML = `
-                <div class="flex justify-between font-bold text-stone-900 border-b border-stone-200/50 pb-1.5 mb-1.5">
-                    <span>Menu Hidangan</span>
-                    <span>Total Tagihan</span>
+            <!-- Local User Avatar -->
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative">
+                <div id="localSpeakingRing" class="absolute -inset-2 rounded-full bg-indigo-500/0 transition-all duration-200"></div>
+                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-indigo-700 to-indigo-500 border-2 border-indigo-400 flex items-center justify-center shadow-xl">
+                  <i class="fa-solid fa-user text-2xl sm:text-3xl text-white"></i>
                 </div>
-                <div class="flex justify-between items-center text-xs mb-2">
-                    <span class="text-stone-700">${order.items}</span>
-                    <span class="font-extrabold text-stone-900">Rp ${order.total.toLocaleString('id-ID')}</span>
+                <div id="localMuteBadge" class="hidden absolute bottom-0 right-0 w-7 h-7 bg-rose-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-white text-xs">
+                  <i class="fa-solid fa-microphone-slash"></i>
                 </div>
-                ${order.notes && order.notes !== 'Tidak ada catatan' ? `
-                <div class="mt-2 bg-amber-50 border-l-2 border-amber-500 p-2.5 rounded-r-xl">
-                    <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Catatan Request Kamu:</p>
-                    <p class="text-xs text-stone-600 italic mt-0.5">"${order.notes}"</p>
+              </div>
+              <span class="text-xs font-semibold text-gray-300">Kamu</span>
+            </div>
+
+            <!-- Connection Animated Dots -->
+            <div class="flex items-center gap-1.5 text-indigo-400/60">
+              <i class="fa-solid fa-waveform text-xl animate-pulse"></i>
+            </div>
+
+            <!-- Remote Peer Avatar -->
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative">
+                <div id="remoteSpeakingRing" class="absolute -inset-2 rounded-full bg-purple-500/0 transition-all duration-200"></div>
+                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-700 to-pink-500 border-2 border-purple-400 flex items-center justify-center shadow-xl">
+                  <i id="remoteAvatarIcon" class="fa-solid fa-user-secret text-2xl sm:text-3xl text-white"></i>
                 </div>
-                ` : ''}
-            `;
-            summaryContainer.insertAdjacentHTML('beforeend', itemHTML);
+                <div id="remoteMuteBadge" class="hidden absolute bottom-0 right-0 w-7 h-7 bg-rose-600 rounded-full border-2 border-gray-900 flex items-center justify-center text-white text-xs">
+                  <i class="fa-solid fa-volume-xmark"></i>
+                </div>
+              </div>
+              <span id="remoteNameLabel" class="text-xs font-semibold text-gray-300">Pengguna Anonim</span>
+            </div>
 
-            // Set progress steps
-            setTrackingTimeline(order.status);
+          </div>
+        </div>
 
-            trackScreen.classList.remove('hidden');
+        <!-- Peer Info Box -->
+        <div class="mt-6 px-4 py-2 rounded-xl bg-gray-900/60 border border-gray-800 text-xs text-gray-400 flex items-center gap-2">
+          <i class="fa-solid fa-lock text-indigo-400"></i>
+          <span>Obrolan terenkripsi *End-to-End* via WebRTC</span>
+        </div>
+      </div>
 
-            // Save active tracking order to localstorage to persist on refresh
-            localStorage.setItem('active_tracking_order_id', order.id);
+      <!-- Action Control Buttons Bar -->
+      <div class="glass-card rounded-2xl px-6 py-4 flex items-center justify-center gap-4 sm:gap-6 border border-gray-800 shadow-2xl">
+        <!-- Toggle Mic -->
+        <button id="btnToggleMic" class="w-14 h-14 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-200 flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg border border-gray-700" title="Mute / Unmute Mic">
+          <i class="fa-solid fa-microphone" id="iconMic"></i>
+        </button>
+
+        <!-- Toggle Deafen / Speaker -->
+        <button id="btnToggleDeafen" class="w-14 h-14 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-200 flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg border border-gray-700" title="Matikan Suara Lawan">
+          <i class="fa-solid fa-volume-high" id="iconDeafen"></i>
+        </button>
+
+        <!-- Voice Effect Toggle Modal Trigger -->
+        <button id="btnVoiceEffects" class="w-14 h-14 rounded-2xl bg-gray-800 hover:bg-indigo-600/30 hover:border-indigo-500/50 text-indigo-400 flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg border border-gray-700" title="Efek Suara / Filter">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </button>
+
+        <!-- Skip / Next Match -->
+        <button id="btnNextCall" class="w-14 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg shadow-indigo-600/30" title="Cari Teman Baru">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+
+        <!-- End Call -->
+        <button id="btnEndCall" class="w-14 h-14 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg shadow-rose-600/30" title="Akhiri Panggilan">
+          <i class="fa-solid fa-phone-slash"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Hidden HTML5 Audio Element for Remote Stream -->
+    <audio id="remoteAudio" autoplay class="hidden"></audio>
+
+  </main>
+
+  <!-- Voice Effects Modal -->
+  <div id="modalVoiceEffects" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 w-full max-w-md border border-gray-800 shadow-2xl relative">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-400"></i> Efek Suara & Mic
+        </h3>
+        <button id="btnCloseModal" class="text-gray-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-5">
+        <!-- Mic Gain Control -->
+        <div>
+          <div class="flex justify-between text-xs font-semibold text-gray-300 mb-2">
+            <span>Penguat Suara Mic (Volume Gain)</span>
+            <span id="gainValueText">100%</span>
+          </div>
+          <input type="range" id="sliderGain" min="0" max="300" value="100" class="w-full accent-indigo-500 bg-gray-800 rounded-lg cursor-pointer">
+        </div>
+
+        <!-- Voice Filter Preset -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 mb-2">Filter Suara Suasana</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button class="btn-preset py-2 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold transition" data-preset="normal">Normal</button>
+            <button class="btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition" data-preset="radio">Walkie-Talkie</button>
+            <button class="btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition" data-preset="cave">Gema / Cave</button>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-800 flex justify-end">
+          <button id="btnSaveEffects" class="py-2.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition">
+            Simpan Pengaturan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Info -->
+  <footer class="w-full py-4 text-center text-xs text-gray-600 border-t border-gray-900">
+    Voisa Web &copy; 2026 — P2P Voice Call via WebRTC & Web Audio API
+  </footer>
+
+  <script>
+    // App State Management
+    let peer = null;
+    let localStream = null;
+    let activeCall = null;
+    let isMuted = false;
+    let isDeafened = false;
+    let isEchoTest = false;
+
+    // Web Audio API Elements
+    let audioCtx = null;
+    let analyserNode = null;
+    let gainNode = null;
+    let biquadFilter = null;
+    let delayNode = null;
+    let animFrameId = null;
+
+    // Timer state
+    let timerInterval = null;
+    let callSeconds = 0;
+
+    // DOM Elements
+    const lobbySection = document.getElementById('lobbySection');
+    const searchingSection = document.getElementById('searchingSection');
+    const callSection = document.getElementById('callSection');
+    const inputRoomCode = document.getElementById('inputRoomCode');
+    const remoteAudio = document.getElementById('remoteAudio');
+    const callTimer = document.getElementById('callTimer');
+    const statusText = document.getElementById('statusText');
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        info: 'border-indigo-500 bg-gray-900 text-indigo-300',
+        success: 'border-emerald-500 bg-gray-900 text-emerald-300',
+        error: 'border-rose-500 bg-gray-900 text-rose-300'
+      };
+
+      toast.className = `pointer-events-auto flex items-center justify-between p-3.5 rounded-xl border ${colors[type]} shadow-xl text-xs font-semibold transition duration-300 transform translate-y-2 opacity-0`;
+      toast.innerHTML = `
+        <div class="flex items-center gap-2">
+          <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i>
+          <span>${message}</span>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function initPeer() {
+      // Random prefix for matchmaking
+      const randomId = 'voisa-' + Math.random().toString(36).substring(2, 9);
+      peer = new Peer(randomId, {
+        debug: 1
+      });
+
+      peer.on('open', (id) => {
+        console.log('Peer connected with ID:', id);
+        statusText.innerText = `Online (${id.substring(0, 10)}...)`;
+        document.getElementById('myPeerIdDisplay').innerText = id;
+        showToast('Terhubung ke jaringan PeerJS server', 'success');
+      });
+
+      peer.on('call', (incomingCall) => {
+        // Handle incoming calls automatically
+        if (confirmCallAcceptance(incomingCall.peer)) {
+          getAudioPermission().then((stream) => {
+            if (!stream) return;
+            localStream = stream;
+            setupWebAudio(stream);
+
+            incomingCall.answer(stream);
+            handleCallStream(incomingCall);
+          });
+        }
+      });
+
+      peer.on('error', (err) => {
+        console.error('PeerJS error:', err);
+        showToast(`Koneksi error: ${err.type}`, 'error');
+        resetToLobby();
+      });
+    }
+
+    document.getElementById('btnCopyId').addEventListener('click', () => {
+      if (!peer || !peer.id) return;
+      navigator.clipboard.writeText(peer.id).then(() => {
+        showToast('ID Ruangan berhasil disalin!', 'success');
+      }).catch(err => {
+        // Fallback
+        const textArea = document.createElement("textarea");
+        textArea.value = peer.id;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          showToast('ID Ruangan berhasil disalin!', 'success');
+        } catch (err) {
+          showToast('Gagal menyalin ID', 'error');
+        }
+        document.body.removeChild(textArea);
+      });
+    });
+
+    function confirmCallAcceptance(peerId) {
+      // Auto accept or switch screen
+      showToast('Menerima panggilan masuk...', 'info');
+      return true;
+    }
+
+    async function getAudioPermission() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: false
+        });
+        return stream;
+      } catch (err) {
+        showToast('Izin mikrofon ditolak! Izinkan akses mic di browser.', 'error');
+        return null;
+      }
+    }
+
+    function setupWebAudio(stream) {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 64;
+
+      gainNode = audioCtx.createGain();
+      biquadFilter = audioCtx.createBiquadFilter();
+      delayNode = audioCtx.createDelay();
+
+      // Audio Graph pipeline
+      source.connect(gainNode);
+      gainNode.connect(analyserNode);
+
+      // Start canvas visualization
+      startVisualizer();
+    }
+
+    function startVisualizer() {
+      const canvas = document.getElementById('audioVisualizer');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function renderFrame() {
+        animFrameId = requestAnimationFrame(renderFrame);
+        analyserNode.getByteFrequencyData(dataArray);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate average volume for speaking ring
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+
+        // Local Speaking indicator animation
+        const localRing = document.getElementById('localSpeakingRing');
+        if (average > 15 && !isMuted) {
+          localRing.style.backgroundColor = 'rgba(99, 102, 241, 0.4)';
+          localRing.style.transform = `scale(${1 + (average / 150)})`;
+        } else {
+          localRing.style.backgroundColor = 'rgba(99, 102, 241, 0)';
+          localRing.style.transform = 'scale(1)';
         }
 
-        // DYNAMIC STATUS TRACKING UPDATER
-        function setTrackingTimeline(status) {
-            const circleCook = document.getElementById('timeline-cook-circle');
-            const barCook = document.getElementById('timeline-cook-bar');
-            const titleCook = document.getElementById('timeline-cook-title');
+        // Draw dynamic wave visualizer bars
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let x = 0;
 
-            const circleReady = document.getElementById('timeline-ready-circle');
-            const titleReady = document.getElementById('timeline-ready-title');
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height * 0.7;
+          
+          const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          gradient.addColorStop(0, 'rgba(99, 102, 241, 0.1)');
+          gradient.addColorStop(1, 'rgba(168, 85, 247, 0.6)');
 
-            if (status === 'Pending') {
-                circleCook.className = "w-8 h-8 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center text-xs font-bold";
-                barCook.className = "w-0.5 h-10 bg-stone-200";
-                titleCook.className = "font-bold text-stone-400 text-sm";
-                circleReady.className = "w-8 h-8 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center text-xs font-bold";
-                titleReady.className = "font-bold text-stone-400 text-sm";
-            } else if (status === 'Diproses') {
-                circleCook.className = "w-8 h-8 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center text-xs font-bold shadow-md shadow-amber-500/20";
-                barCook.className = "w-0.5 h-10 bg-amber-500";
-                titleCook.className = "font-bold text-stone-900 text-sm";
-                circleReady.className = "w-8 h-8 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center text-xs font-bold";
-                titleReady.className = "font-bold text-stone-400 text-sm";
-            } else if (status === 'Selesai') {
-                circleCook.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
-                barCook.className = "w-0.5 h-10 bg-emerald-500";
-                titleCook.className = "font-bold text-stone-600 text-sm";
-                circleReady.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-md shadow-emerald-500/20";
-                titleReady.className = "font-bold text-stone-900 text-sm";
-            }
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+
+          x += barWidth + 2;
         }
-
-        // RETURN BACK TO HOME FROM STATUS SCREEN
-        function backToOrderMenu() {
-            document.getElementById('order-status-screen').classList.add('hidden');
-            localStorage.removeItem('active_tracking_order_id');
-            renderCustomerMenu();
-        }
-
-        // NEW FUNCTION: Background monitoring for customer's tracked order status
-        function pollActiveOrderTracking() {
-            // Cek apakah user sedang aktif di halaman pelanggan. Jika di kasir/dapur, jangan ganggu layar kasir.
-            if (activeView !== 'customer') return;
-
-            const trackingID = localStorage.getItem('active_tracking_order_id');
-            if (!trackingID) return;
-
-            const orders = getOrdersList();
-            const order = orders.find(o => o.id === trackingID);
-            
-            if (order) {
-                const badge = document.getElementById('track-status-badge');
-                
-                // Check if UI is out of sync with actual database status
-                if (badge && badge.textContent !== order.status) {
-                    const oldStatus = badge.textContent;
-                    badge.textContent = order.status;
-                    
-                    // Dynamically update color badge classes
-                    if (order.status === 'Pending') {
-                        badge.className = "text-xs bg-amber-100 text-amber-700 font-bold px-2.5 py-1 rounded-full";
-                    } else if (order.status === 'Diproses') {
-                        badge.className = "text-xs bg-indigo-100 text-indigo-700 font-bold px-2.5 py-1 rounded-full";
-                    } else if (order.status === 'Selesai') {
-                        badge.className = "text-xs bg-emerald-100 text-emerald-700 font-bold px-2.5 py-1 rounded-full";
-                    }
-                    
-                    // Update the visual step timeline
-                    setTrackingTimeline(order.status);
-                    
-                    // Trigger custom elegant notification toast
-                    showNotification(`Status pesanan Anda kini: ${order.status}!`, 'info');
-
-                    // If status changes to 'Selesai' actively, trigger the full celebration flow
-                    if (order.status === 'Selesai' && oldStatus !== 'Selesai') {
-                        triggerCompletionFlow(order);
-                    }
-                }
-            }
-        }
-
-        // TRIGGER FULL-SCREEN CELEBRATION TRANSITION FLOW
-        function triggerCompletionFlow(order) {
-            const celebration = document.getElementById('celebration-screen');
-            
-            // Show celebration screen with animation fade-in
-            celebration.classList.remove('hidden');
-            setTimeout(() => {
-                celebration.classList.remove('opacity-0');
-            }, 50);
-
-            // Hide celebration screen after 3.5 seconds, then go back to order menu and pop review modal
-            setTimeout(() => {
-                celebration.classList.add('opacity-0');
-                setTimeout(() => {
-                    celebration.classList.add('hidden');
-                    // Return back to main ordering menu
-                    backToOrderMenu();
-                    // Open the feedback/review modal
-                    openReviewModal();
-                }, 500); // match transition duration
-            }, 3500);
-        }
-
-        // OPEN REVIEW MODAL
-        function openReviewModal() {
-            activeReviewRating = 0; // reset rating
-            document.getElementById('input-review-text').value = '';
-            
-            // Reset stars visually to gray
-            const stars = document.querySelectorAll('.review-star-btn');
-            stars.forEach(star => {
-                star.classList.remove('text-amber-400');
-                star.classList.add('text-stone-200');
-            });
-
-            document.getElementById('review-modal').classList.remove('hidden');
-        }
-
-        // SET RATING STARS VISUALLY
-        function setReviewRating(rating) {
-            activeReviewRating = rating;
-            const stars = document.querySelectorAll('.review-star-btn');
-            stars.forEach((star, index) => {
-                if (index < rating) {
-                    star.classList.remove('text-stone-200');
-                    star.classList.add('text-amber-400');
-                } else {
-                    star.classList.remove('text-amber-400');
-                    star.classList.add('text-stone-200');
-                }
-            });
-        }
-
-        // SUBMIT CUSTOMER REVIEW
-        function submitReview() {
-            const text = document.getElementById('input-review-text').value.trim();
-            if (activeReviewRating === 0) {
-                showNotification('Harap berikan rating bintang sebelum mengirim ulasan.', 'warning');
-                return;
-            }
-
-            // Save review payload to localStorage under reviews_list
-            const reviews = JSON.parse(localStorage.getItem('reviews_list') || '[]');
-            const newReview = {
-                id: 'REV-' + Math.floor(1000 + Math.random() * 9000),
-                rating: activeReviewRating,
-                comment: text || 'Tidak ada komentar tertulis.',
-                timestamp: new Date().toLocaleString('id-ID')
-            };
-
-            reviews.unshift(newReview);
-            localStorage.setItem('reviews_list', JSON.stringify(reviews));
-
-            // Close modal & notify
-            document.getElementById('review-modal').classList.add('hidden');
-            showNotification('Terima kasih banyak atas ulasan Anda! Kami sangat menghargainya.', 'success');
-        }
-
-        // SKIP REVIEW ACTION
-        function skipReview() {
-            document.getElementById('review-modal').classList.add('hidden');
-            showNotification('Selamat menikmati hidangan spesial kami!', 'success');
-        }
-
-        // NEW FUNCTION: Restore active tracking overlay if customer refreshes the page
-        function restoreActiveTracking() {
-            const trackingID = localStorage.getItem('active_tracking_order_id');
-            if (trackingID) {
-                const orders = getOrdersList();
-                const order = orders.find(o => o.id === trackingID);
-                if (order) {
-                    // Force display customer tab & restore full overlay
-                    switchView('customer');
-                    showOrderTracking(order);
-                }
-            }
-        }
-
-        // SENDS TRANSACTION PAYLOAD TO GAS APPS SCRIPT WEB APP
-        async function sendToGoogleSheets(order) {
-            try {
-                const response = await fetch(googleSheetsURL, {
-                    method: 'POST',
-                    mode: 'no-cors', // CORS safety on custom deployment
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(order)
-                });
-                console.log('Sync to Google Sheets initiated successfully.');
-            } catch (error) {
-                console.error('Google Sheets sync failed: ', error);
-            }
-        }
-
-        // SAVE CUSTOMER GOOGLE SHEETS LINK TO LOCAL MEMORY
-        function saveGoogleSheetsURL() {
-            const urlInput = document.getElementById('google-sheets-url').value.trim();
-            if (!urlInput) {
-                localStorage.removeItem('google_sheets_url');
-                googleSheetsURL = '';
-                document.getElementById('sync-connection-status').textContent = "Demo/Offline Mode";
-                document.getElementById('sync-connection-status').className = "font-extrabold text-amber-500";
-                showNotification('Integrasi dinonaktifkan. Mode Demo aktif.', 'warning');
-            } else {
-                localStorage.setItem('google_sheets_url', urlInput);
-                googleSheetsURL = urlInput;
-                document.getElementById('sync-connection-status').textContent = "Tersambung (Live Sync)";
-                document.getElementById('sync-connection-status').className = "font-extrabold text-emerald-500";
-                showNotification('URL Google Sheets berhasil disimpan!', 'success');
-            }
-        }
-
-        // COPY EMBEDDED APPS SCRIPT SNIPPET TO CLIPBOARD
-        function copyAppsScriptCode() {
-            const textToCopy = document.getElementById('apps-script-code-block').innerText;
-            const dummyInput = document.createElement('textarea');
-            document.body.appendChild(dummyInput);
-            dummyInput.value = textToCopy;
-            dummyInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(dummyInput);
-            showNotification('Kode Google Apps Script disalin ke clipboard!', 'success');
-        }
-
-        // CLEAR DEMO RESET ACTION FOR DEVELOPER/OWNERS
-        function clearAllOrders() {
-            saveOrdersList([]);
-            lastOrderCount = 0; // reset audio counter trigger
-            showNotification('Semua data pesanan demo berhasil di-reset.', 'success');
-        }
-
-        // RENDER ADMIN ORDERS MANAGER LIST
-        function renderAdminOrders() {
-            const tableBody = document.getElementById('admin-orders-table-body');
-            const emptyState = document.getElementById('admin-orders-empty-state');
-            const orders = getOrdersList();
-
-            // Stats counts
-            let pendingCount = 0;
-            let cookingCount = 0;
-            let doneCount = 0;
-            let salesSum = 0;
-
-            tableBody.innerHTML = '';
-
-            if (orders.length === 0) {
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                orders.forEach(order => {
-                    // Update dynamic statistics counts
-                    if (order.status === 'Pending') pendingCount++;
-                    if (order.status === 'Diproses') cookingCount++;
-                    if (order.status === 'Selesai') {
-                        doneCount++;
-                        salesSum += order.total;
-                    }
-
-                    // Render dynamic status labels
-                    let statusClass = 'bg-amber-100 text-amber-700';
-                    if (order.status === 'Diproses') statusClass = 'bg-indigo-100 text-indigo-700';
-                    if (order.status === 'Selesai') statusClass = 'bg-emerald-100 text-emerald-700';
-
-                    const rowHTML = `
-                        <tr class="hover:bg-stone-50/50">
-                            <td class="p-4">
-                                <p class="font-extrabold text-stone-900 text-xs">${order.id}</p>
-                                <p class="text-[10px] text-stone-400 mt-0.5">${order.timestamp}</p>
-                            </td>
-                            <td class="p-4">
-                                <p class="font-bold text-stone-800 text-xs">Meja ${order.meja}</p>
-                                <p class="text-xs text-stone-500">${order.customer}</p>
-                            </td>
-                            <td class="p-4 max-w-xs">
-                                <p class="text-xs font-semibold text-stone-700 truncate">${order.items}</p>
-                                ${order.notes && order.notes !== 'Tidak ada catatan' ? `
-                                <div class="mt-1 bg-amber-50 border-l-2 border-amber-500 px-2 py-0.5 rounded-r-md">
-                                    <p class="text-[10px] text-amber-900 font-bold"><i class="fa-solid fa-comment-dots mr-1"></i>Req: ${order.notes}</p>
-                                </div>
-                                ` : ''}
-                            </td>
-                            <td class="p-4">
-                                <div class="flex items-center gap-2">
-                                    <div>
-                                        <p class="font-bold text-stone-900 text-xs">Rp ${order.total.toLocaleString('id-ID')}</p>
-                                        <span class="inline-block text-[9px] font-bold text-stone-400 uppercase mt-0.5">${order.metode}</span>
-                                    </div>
-                                    ${order.metode === 'QRIS' ? `
-                                        <button onclick="viewImageReceipt()" class="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-extrabold px-2.5 py-1.5 rounded-lg border border-indigo-200 transition-all flex items-center gap-1">
-                                            <i class="fa-solid fa-eye"></i> Bukti
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </td>
-                            <td class="p-4 text-center">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${statusClass}">${order.status}</span>
-                            </td>
-                            <td class="p-4 text-center">
-                                <div class="flex items-center justify-center gap-1.5">
-                                    ${order.status === 'Pending' ? `
-                                        <button onclick="updateOrderStatus('${order.id}', 'Diproses')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1 transition-all shadow-sm">
-                                            <i class="fa-solid fa-fire-burner"></i> Proses
-                                        </button>
-                                    ` : ''}
-                                    ${order.status === 'Diproses' ? `
-                                        <button onclick="updateOrderStatus('${order.id}', 'Selesai')" class="bg-emerald-500 hover:bg-emerald-600 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1 transition-all shadow-sm">
-                                            <i class="fa-solid fa-check"></i> Selesai
-                                        </button>
-                                    ` : ''}
-                                    ${order.status === 'Selesai' ? `
-                                        <span class="text-xs font-bold text-emerald-500"><i class="fa-solid fa-circle-check"></i> Lunas</span>
-                                    ` : ''}
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    tableBody.insertAdjacentHTML('beforeend', rowHTML);
-                });
-            }
-
-            // Update stats layout text
-            document.getElementById('admin-stats-pending').textContent = pendingCount;
-            document.getElementById('admin-stats-cooking').textContent = cookingCount;
-            document.getElementById('admin-stats-done').textContent = doneCount;
-            document.getElementById('admin-stats-sales').textContent = `Rp ${salesSum.toLocaleString('id-ID')}`;
-        }
-
-        // VIEW IMAGE SLIP RECEIPT ACTION
-        function viewImageReceipt() {
-            const modal = document.getElementById('image-viewer-modal');
-            const img = document.getElementById('image-viewer-src');
-            // Mock dynamic high quality transfer slip for preview
-            img.src = 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=500';
-            modal.classList.remove('hidden');
-        }
-
-        function closeImageViewer() {
-            document.getElementById('image-viewer-modal').classList.add('hidden');
-        }
-
-        // UPDATE STATUS OF SPECIFIC DEMO ORDER
-        function updateOrderStatus(id, newStatus) {
-            const list = getOrdersList();
-            const order = list.find(o => o.id === id);
-            if (order) {
-                order.status = newStatus;
-                saveOrdersList(list);
-                showNotification(`Status pesanan ${id} berhasil diperbarui menjadi: ${newStatus}`, 'success');
-
-                // If currently tracked by active customer view, update real-time tracking display
-                const trackingID = localStorage.getItem('active_tracking_order_id');
-                if (trackingID === id) {
-                    document.getElementById('track-status-badge').textContent = newStatus;
-                    setTrackingTimeline(newStatus);
-                }
-            }
-        }
-
-        // RENDER KITCHEN SCREEN (HIGH CONTRAST ACTIVE BILLS)
-        function renderKitchenOrders() {
-            const grid = document.getElementById('kitchen-orders-grid');
-            const emptyState = document.getElementById('kitchen-empty-state');
-            const orders = getOrdersList().filter(o => o.status === 'Diproses');
-
-            grid.innerHTML = '';
-
-            if (orders.length === 0) {
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                orders.forEach(order => {
-                    const ticketHTML = `
-                        <div class="bg-stone-800 border-2 border-stone-700 rounded-3xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden">
-                            <div class="absolute right-3 top-3 text-[50px] opacity-5 text-stone-50 pointer-events-none">
-                                <i class="fa-solid fa-utensils"></i>
-                            </div>
-                            <div class="space-y-4">
-                                <div class="flex justify-between items-start border-b border-stone-700 pb-3">
-                                    <div>
-                                        <p class="text-xs text-stone-400 font-bold">MEJA</p>
-                                        <h4 class="text-3xl font-black text-amber-400">${order.meja}</h4>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="inline-block text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider mb-1">MASAK</span>
-                                        <p class="text-[10px] text-stone-500 font-medium">${order.timestamp}</p>
-                                    </div>
-                                </div>
-                                <div class="space-y-2">
-                                    <p class="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Daftar Hidangan</p>
-                                    <p class="text-sm font-extrabold text-stone-200 leading-relaxed">${order.items}</p>
-                                    ${order.notes && order.notes !== 'Tidak ada catatan' ? `
-                                    <div class="mt-3 bg-stone-700 border-l-4 border-amber-500 p-2.5 rounded-r-xl">
-                                        <p class="text-[9px] font-bold text-amber-400 uppercase tracking-widest"><i class="fa-solid fa-triangle-exclamation mr-1 text-[11px]"></i> Catatan Koki:</p>
-                                        <p class="text-xs font-black text-stone-50 italic mt-0.5">"${order.notes}"</p>
-                                    </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            
-                            <div class="border-t border-stone-700/60 pt-4 mt-6">
-                                <button onclick="updateOrderStatus('${order.id}', 'Selesai')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-stone-950 font-black py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-500/10 text-xs">
-                                    <i class="fa-solid fa-circle-check"></i> SELESAI DIMASAK
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    grid.insertAdjacentHTML('beforeend', ticketHTML);
-                });
-            }
-        }
-
-        // RENDER ADMIN MENU MANAGEMENT TAB
-        function renderAdminMenu() {
-            const grid = document.getElementById('admin-menu-management-grid');
-            const menuList = getMenuList();
-            grid.innerHTML = '';
-
-            menuList.forEach(item => {
-                const cardHTML = `
-                    <div class="bg-white border border-stone-200 rounded-2xl p-4 flex gap-4 shadow-sm relative items-center justify-between">
-                        <div class="flex gap-3 items-center">
-                            <img src="${item.photo || 'https://placehold.co/100x100/f5f5f4/a8a29e?text=No+Photo'}" alt="${item.name}" class="w-16 h-16 rounded-xl object-cover border border-stone-100">
-                            <div>
-                                <h4 class="font-extrabold text-stone-900 text-sm leading-tight">${item.name}</h4>
-                                <p class="text-xs font-bold text-amber-600 mt-1">Rp ${item.price.toLocaleString('id-ID')}</p>
-                                <p class="text-[9px] text-stone-400 mt-0.5 uppercase font-bold">${item.category}</p>
-                            </div>
-                        </div>
-                        <div class="flex flex-col items-end gap-2">
-                            <div class="flex items-center gap-1">
-                                <span class="text-[10px] font-bold text-stone-400">Tersedia</span>
-                                <button onclick="toggleMenuStock('${item.id}')" class="w-10 h-6 rounded-full transition-all relative p-1 cursor-pointer flex items-center ${item.status === 'Tersedia' ? 'bg-emerald-500 justify-end' : 'bg-stone-300 justify-start'}">
-                                    <span class="w-4 h-4 rounded-full bg-white shadow-sm inline-block"></span>
-                                </button>
-                            </div>
-                            <button onclick="deleteMenu('${item.id}')" class="text-red-500 hover:text-red-700 text-xs font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-red-50 transition-all mt-1">
-                                <i class="fa-solid fa-trash-can"></i> Hapus
-                            </button>
-                        </div>
-                    </div>
-                `;
-                grid.insertAdjacentHTML('beforeend', cardHTML);
-            });
-        }
-
-        // TOGGLE MENU STOCK (SOLD OUT MANAGER)
-        function toggleMenuStock(id) {
-            const menuList = getMenuList();
-            const item = menuList.find(m => m.id === id);
-            if (item) {
-                item.status = item.status === 'Tersedia' ? 'Habis' : 'Tersedia';
-                saveMenuList(menuList);
-                showNotification(`Status ${item.name} berhasil diubah ke: ${item.status}`, 'success');
-            }
-        }
-
-        // DELETE MENU
-        function deleteMenu(id) {
-            const menuList = getMenuList().filter(m => m.id !== id);
-            saveMenuList(menuList);
-            showNotification('Menu hidangan berhasil dihapus.', 'success');
-        }
-
-        // TOGGLE ADD NEW MENU DIALOG POPUP
-        function toggleAddMenuModal(show) {
-            const modal = document.getElementById('add-menu-modal');
-            if (show) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
-        // SAVE NEW MENU SUBMIT ACTION
-        function createNewMenu() {
-            const name = document.getElementById('add-menu-name').value.trim();
-            const price = parseFloat(document.getElementById('add-menu-price').value);
-            const category = document.getElementById('add-menu-category').value;
-            const photo = document.getElementById('add-menu-photo').value.trim();
-            const desc = document.getElementById('add-menu-desc').value.trim();
-
-            if (!name || isNaN(price) || price <= 0) {
-                showNotification('Harap masukkan Nama Menu dan Harga yang valid.', 'error');
-                return;
-            }
-
-            const newMenuItem = {
-                id: 'M' + Math.floor(100 + Math.random() * 900),
-                name,
-                price,
-                category,
-                desc,
-                photo: photo || null,
-                status: 'Tersedia'
-            };
-
-            const menuList = getMenuList();
-            menuList.push(newMenuItem);
-            saveMenuList(menuList);
-
-            // Clean forms
-            document.getElementById('add-menu-name').value = '';
-            document.getElementById('add-menu-price').value = '';
-            document.getElementById('add-menu-photo').value = '';
-            document.getElementById('add-menu-desc').value = '';
-
-            toggleAddMenuModal(false);
-            showNotification('Menu baru berhasil ditambahkan!', 'success');
-        }
-
-        // APP VIEW CONTROLLER
-        function switchView(viewName) {
-            // Intercept and request authentication for Admin and Kitchen views
-            if (viewName === 'admin' || viewName === 'kitchen') {
-                const isAuthenticated = sessionStorage.getItem('resto_auth') === 'true';
-                if (!isAuthenticated) {
-                    targetedView = viewName;
-                    openPasswordModal(viewName);
-                    return; // Stop view change propagation
-                }
-            }
-
-            activeView = viewName;
-            
-            // Hide all sections
-            document.getElementById('view-customer').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            document.getElementById('view-kitchen').classList.add('hidden');
-
-            // Reset switcher styles
-            const btnCustomer = document.getElementById('btn-view-customer');
-            const btnAdmin = document.getElementById('btn-view-admin');
-            const btnKitchen = document.getElementById('btn-view-kitchen');
-
-            btnCustomer.className = "px-3 py-1.5 rounded-md font-semibold transition-all text-stone-300 hover:text-white";
-            btnAdmin.className = "px-3 py-1.5 rounded-md font-semibold transition-all text-stone-300 hover:text-white";
-            btnKitchen.className = "px-3 py-1.5 rounded-md font-semibold transition-all text-stone-300 hover:text-white";
-
-            // Show active section
-            if (viewName === 'customer') {
-                document.getElementById('view-customer').classList.remove('hidden');
-                btnCustomer.className = "px-3 py-1.5 rounded-md font-bold transition-all bg-amber-500 text-stone-950 shadow-md";
-                renderCustomerMenu();
-            } else if (viewName === 'admin') {
-                document.getElementById('view-admin').classList.remove('hidden');
-                btnAdmin.className = "px-3 py-1.5 rounded-md font-bold transition-all bg-amber-500 text-stone-950 shadow-md";
-                renderAdminOrders();
-            } else if (viewName === 'kitchen') {
-                document.getElementById('view-kitchen').classList.remove('hidden');
-                btnKitchen.className = "px-3 py-1.5 rounded-md font-bold transition-all bg-amber-500 text-stone-950 shadow-md";
-                renderKitchenOrders();
-            }
-        }
-
-        // PASSWORD AUTHENTICATION FUNCTIONS
-        function openPasswordModal(viewName) {
-            const modal = document.getElementById('password-modal');
-            const targetDisplay = document.getElementById('password-target-display');
-            const passwordInput = document.getElementById('input-auth-password');
-
-            targetDisplay.textContent = viewName === 'admin' ? 'Admin / Kasir' : 'Dapur';
-            passwordInput.value = '';
-            modal.classList.remove('hidden');
-            passwordInput.focus();
-        }
-
-        function closePasswordModal() {
-            document.getElementById('password-modal').classList.add('hidden');
-            targetedView = null;
-        }
-
-        function submitPassword() {
-            const passwordInput = document.getElementById('input-auth-password');
-            const value = passwordInput.value.trim();
-
-            if (value === '210906') {
-                sessionStorage.setItem('resto_auth', 'true');
-                showNotification('Akses berhasil diverifikasi!', 'success');
-                closePasswordModal();
-                updateLockIcon();
-                
-                if (targetedView) {
-                    switchView(targetedView);
-                }
-            } else {
-                showNotification('Kata sandi salah! Akses ditolak.', 'error');
-                passwordInput.value = '';
-                passwordInput.focus();
-            }
-        }
-
-        // LOCK AUTHENTICATED SECTIONS
-        function lockSystem() {
-            sessionStorage.removeItem('resto_auth');
-            showNotification('Sistem berhasil dikunci kembali.', 'warning');
-            updateLockIcon();
-            switchView('customer');
-        }
-
-        // SHOW/HIDE LOCK ICON
-        function updateLockIcon() {
-            const lockBtn = document.getElementById('btn-auth-lock');
-            const isAuthenticated = sessionStorage.getItem('resto_auth') === 'true';
-            if (isAuthenticated) {
-                lockBtn.classList.remove('hidden');
-            } else {
-                lockBtn.classList.add('hidden');
-            }
-        }
-
-        // SWITCH SUB-TABS ON ADMIN SECTION
-        function switchAdminTab(tabName) {
-            const tabOrders = document.getElementById('admin-tab-orders');
-            const tabMenu = document.getElementById('admin-tab-menu');
-            const tabIntegration = document.getElementById('admin-tab-integration');
-
-            const btnOrders = document.getElementById('btn-admin-tab-orders');
-            const btnMenu = document.getElementById('btn-admin-tab-menu');
-            const btnIntegration = document.getElementById('btn-admin-tab-integration');
-
-            tabOrders.classList.add('hidden');
-            tabMenu.classList.add('hidden');
-            tabIntegration.classList.add('hidden');
-
-            btnOrders.className = "px-4 py-2 rounded-lg font-bold text-xs text-stone-500 hover:text-stone-800 transition-all";
-            btnMenu.className = "px-4 py-2 rounded-lg font-bold text-xs text-stone-500 hover:text-stone-800 transition-all";
-            btnIntegration.className = "px-4 py-2 rounded-lg font-bold text-xs text-stone-500 hover:text-stone-800 transition-all";
-
-            if (tabName === 'orders') {
-                tabOrders.classList.remove('hidden');
-                btnOrders.className = "px-4 py-2 rounded-lg font-bold text-xs bg-white text-stone-900 shadow-sm transition-all";
-                renderAdminOrders();
-            } else if (tabName === 'menu') {
-                tabMenu.classList.remove('hidden');
-                btnMenu.className = "px-4 py-2 rounded-lg font-bold text-xs bg-white text-stone-900 shadow-sm transition-all";
-                renderAdminMenu();
-            } else if (tabName === 'integration') {
-                tabIntegration.classList.remove('hidden');
-                btnIntegration.className = "px-4 py-2 rounded-lg font-bold text-xs bg-white text-stone-900 shadow-sm transition-all";
-            }
-        }
-
-        // DETECT TABLE NUMBER ON PAGE INITIAL LOAD
-        function initTableDetection() {
-            const params = new URLSearchParams(window.location.search);
-            const mejaParam = params.get('meja');
-
-            if (mejaParam) {
-                tableNumber = mejaParam;
-                document.getElementById('current-table-display').textContent = mejaParam;
-                document.getElementById('table-selector').classList.add('hidden');
-            } else {
-                // If table is not in URL, check if previously stored
-                const savedTable = sessionStorage.getItem('active_session_table');
-                if (savedTable) {
-                    tableNumber = savedTable;
-                    document.getElementById('current-table-display').textContent = savedTable;
-                } else {
-                    // Open overlay selector modal to force table number input
-                    document.getElementById('table-selector').classList.remove('hidden');
-                }
-            }
-        }
-
-        // SAVE TABLE INPUT FROM FALLBACK MODAL SELECTOR
-        function setTableFromSelector() {
-            const input = document.getElementById('input-table-num').value.trim();
-            if (!input || isNaN(input) || parseInt(input) <= 0 || parseInt(input) > 20) {
-                showNotification('Harap masukkan nomor meja yang valid (1-20).', 'error');
-                return;
-            }
-
-            tableNumber = input;
-            sessionStorage.setItem('active_session_table', input);
-            document.getElementById('current-table-display').textContent = input;
-            document.getElementById('table-selector').classList.add('hidden');
-            showNotification(`Selamat Datang di Meja ${input}! Silakan pilih menu hidangan Anda.`, 'success');
-        }
-
-        // ON LOAD INITIALIZATION EXECUTION
-        window.onload = function() {
-            // Load table detection
-            initTableDetection();
-
-            // Populate initial dashboard menu list
-            renderCustomerMenu();
-            renderAdminMenu();
-            renderAdminOrders();
-            renderKitchenOrders();
-
-            // Set initial order count to prevent notification sound on first load
-            lastOrderCount = getOrdersList().length;
-
-            // Restore tracking overlay if order has not been closed
-            restoreActiveTracking();
-
-            // Set dynamic locks
-            updateLockIcon();
-
-            // Enable Enter key authentication submit on password field
-            document.getElementById('input-auth-password').addEventListener('keyup', function(event) {
-                if (event.key === 'Enter') {
-                    submitPassword();
-                }
-            });
-
-            // Load saved connection status of Google Sheets inside forms
-            if (googleSheetsURL) {
-                document.getElementById('google-sheets-url').value = googleSheetsURL;
-                document.getElementById('sync-connection-status').textContent = "Tersambung (Live Sync)";
-                document.getElementById('sync-connection-status').className = "font-extrabold text-emerald-500";
-            }
-
-            // Real-time loop checker to simulate sync update between views (reduced interval for responsive feel)
-            setInterval(() => {
-                const currentOrders = getOrdersList();
-                
-                // AUDIO NOTIFICATION TRIGGER: Play sound if new orders are detected while viewing Admin or Kitchen tab
-                if (currentOrders.length > lastOrderCount) {
-                    if (activeView === 'admin' || activeView === 'kitchen') {
-                        playNotificationSound();
-                    }
-                }
-                lastOrderCount = currentOrders.length; // Sync the state tracker
-
-                if (activeView === 'admin') {
-                    renderAdminOrders();
-                } else if (activeView === 'kitchen') {
-                    renderKitchenOrders();
-                }
-                
-                // Always poll and sync current order tracking for customer in the background
-                pollActiveOrderTracking();
-            }, 1500);
-        }
-    </script>
+      }
+
+      renderFrame();
+    }
+
+    function handleCallStream(call) {
+      activeCall = call;
+
+      // Clear status pencarian jika kita dipanggil saat sedang menunggu
+      if (window.waitingForRandom) {
+        localStorage.removeItem('voisa_waiting_peer');
+        window.waitingForRandom = false;
+      }
+
+      call.on('stream', (remoteStream) => {
+        remoteAudio.srcObject = remoteStream;
+        remoteAudio.play();
+        startTimer();
+
+        // Switch UI to call screen
+        lobbySection.classList.add('hidden');
+        searchingSection.classList.add('hidden');
+        callSection.classList.remove('hidden');
+
+        // Confetti effect on call connect
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      });
+
+      call.on('close', () => {
+        showToast('Panggilan diakhiri oleh lawan bicara', 'info');
+        endActiveCall();
+      });
+
+      call.on('error', (err) => {
+        showToast('Panggilan terputus', 'error');
+        endActiveCall();
+      });
+    }
+
+    document.getElementById('btnStartRandom').addEventListener('click', () => {
+      lobbySection.classList.add('hidden');
+      searchingSection.classList.remove('hidden');
+
+      // Trik Matchmaking menggunakan LocalStorage (khusus untuk tes 2 tab di browser yang sama)
+      const waitingPeer = localStorage.getItem('voisa_waiting_peer');
+      
+      if (waitingPeer && waitingPeer !== peer.id) {
+        // Ada tab lain yang sedang menunggu!
+        showToast('Menemukan teman! Menghubungkan...', 'success');
+        localStorage.removeItem('voisa_waiting_peer');
+        
+        setTimeout(() => {
+          startCallWithPeer(waitingPeer);
+        }, 1500);
+      } else {
+        // Belum ada yang menunggu, kita masuk ke antrean
+        localStorage.setItem('voisa_waiting_peer', peer.id);
+        window.waitingForRandom = true;
+        showToast('Mencari teman yang online...', 'info');
+      }
+    });
+
+    document.getElementById('btnJoinRoom').addEventListener('click', () => {
+      const code = inputRoomCode.value.trim();
+      if (!code) {
+        showToast('Masukkan ID Ruangan lawan!', 'error');
+        return;
+      }
+      startCallWithPeer(code);
+    });
+
+    document.getElementById('btnEchoTest').addEventListener('click', async () => {
+      isEchoTest = true;
+      const stream = await getAudioPermission();
+      if (!stream) return;
+
+      localStream = stream;
+      setupWebAudio(stream);
+
+      // Play local mic audio back to remote audio element with slight delay for test
+      remoteAudio.srcObject = stream;
+      remoteAudio.volume = 0.8;
+      
+      document.getElementById('callTypeLabel').innerText = 'Mode Uji Suara (Echo Test)';
+      document.getElementById('remoteNameLabel').innerText = 'Bot Uji Suara';
+
+      lobbySection.classList.add('hidden');
+      callSection.classList.remove('hidden');
+      startTimer();
+      showToast('Mode Uji Suara Aktif! Bicara sekarang.', 'success');
+    });
+
+    async function startCallWithPeer(targetPeerId) {
+      const stream = await getAudioPermission();
+      if (!stream) {
+        resetToLobby();
+        return;
+      }
+
+      localStream = stream;
+      setupWebAudio(stream);
+
+      const call = peer.call(targetPeerId, stream);
+      handleCallStream(call);
+    }
+
+    document.getElementById('btnCancelSearch').addEventListener('click', () => {
+      localStorage.removeItem('voisa_waiting_peer');
+      window.waitingForRandom = false;
+      resetToLobby();
+    });
+
+    document.getElementById('btnToggleMic').addEventListener('click', () => {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks()[0].enabled = !isMuted;
+
+      const icon = document.getElementById('iconMic');
+      const btn = document.getElementById('btnToggleMic');
+      const badge = document.getElementById('localMuteBadge');
+
+      if (isMuted) {
+        icon.className = 'fa-solid fa-microphone-slash';
+        btn.classList.add('bg-rose-600', 'text-white');
+        badge.classList.remove('hidden');
+        showToast('Mikrofon dimatikan', 'info');
+      } else {
+        icon.className = 'fa-solid fa-microphone';
+        btn.classList.remove('bg-rose-600', 'text-white');
+        badge.classList.add('hidden');
+        showToast('Mikrofon aktif', 'success');
+      }
+    });
+
+    document.getElementById('btnToggleDeafen').addEventListener('click', () => {
+      isDeafened = !isDeafened;
+      remoteAudio.muted = isDeafened;
+
+      const icon = document.getElementById('iconDeafen');
+      const btn = document.getElementById('btnToggleDeafen');
+      const badge = document.getElementById('remoteMuteBadge');
+
+      if (isDeafened) {
+        icon.className = 'fa-solid fa-volume-xmark';
+        btn.classList.add('bg-rose-600', 'text-white');
+        badge.classList.remove('hidden');
+        showToast('Suara lawan dibisukan', 'info');
+      } else {
+        icon.className = 'fa-solid fa-volume-high';
+        btn.classList.remove('bg-rose-600', 'text-white');
+        badge.classList.add('hidden');
+        showToast('Suara lawan diaktifkan', 'success');
+      }
+    });
+
+    document.getElementById('btnEndCall').addEventListener('click', () => {
+      endActiveCall();
+    });
+
+    document.getElementById('btnNextCall').addEventListener('click', () => {
+      endActiveCall();
+      document.getElementById('btnStartRandom').click();
+    });
+
+    function endActiveCall() {
+      if (activeCall) {
+        activeCall.close();
+        activeCall = null;
+      }
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+      }
+
+      stopTimer();
+      resetToLobby();
+      showToast('Panggilan diakhiri', 'info');
+    }
+
+    function resetToLobby() {
+      callSection.classList.add('hidden');
+      searchingSection.classList.add('hidden');
+      lobbySection.classList.remove('hidden');
+    }
+
+    function startTimer() {
+      callSeconds = 0;
+      callTimer.innerText = '00:00';
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        callSeconds++;
+        const mins = Math.floor(callSeconds / 60).toString().padStart(2, '0');
+        const secs = (callSeconds % 60).toString().padStart(2, '0');
+        callTimer.innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    const modalVoiceEffects = document.getElementById('modalVoiceEffects');
+    document.getElementById('btnVoiceEffects').addEventListener('click', () => {
+      modalVoiceEffects.classList.remove('hidden');
+    });
+
+    document.getElementById('btnCloseModal').addEventListener('click', () => {
+      modalVoiceEffects.classList.add('hidden');
+    });
+
+    document.getElementById('btnSaveEffects').addEventListener('click', () => {
+      modalVoiceEffects.classList.add('hidden');
+      showToast('Efek suara diterapkan', 'success');
+    });
+
+    document.getElementById('sliderGain').addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.getElementById('gainValueText').innerText = `${val}%`;
+      if (gainNode) {
+        gainNode.gain.value = val / 100;
+      }
+    });
+
+    // Preset selection
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.btn-preset').forEach(b => {
+          b.className = 'btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition';
+        });
+        e.target.className = 'btn-preset py-2 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold transition';
+      });
+    });
+
+    window.addEventListener('load', () => {
+      initPeer();
+    });
+  </script>
 </body>
 </html>
