@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voisa Web - Realtime Voice Call</title>
+  <title>Slipkol - Realtime Voice Call</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -63,7 +63,6 @@
 </head>
 <body class="h-full flex flex-col justify-between overflow-x-hidden selection:bg-indigo-500 selection:text-white">
 
-  <!-- Top Navigation Header -->
   <header class="w-full px-4 lg:px-8 py-4 glass-card border-b border-gray-800/80 sticky top-0 z-40">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -72,9 +71,9 @@
         </div>
         <div>
           <h1 class="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-indigo-300">
-            Voisa<span class="text-indigo-400">Web</span>
+            Slip<span class="text-indigo-400">kol</span>
           </h1>
-          <p class="text-xs text-gray-400 font-medium">Realtime Voice Chat & Call</p>
+          <p class="text-xs text-gray-400 font-medium">Realtime Voice Chat & Matchmaking</p>
         </div>
       </div>
 
@@ -85,7 +84,7 @@
             <span id="statusPingPulse" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span id="statusPingDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <span id="statusText">Peer Ready</span>
+          <span id="statusText">Menghubungkan...</span>
         </div>
 
         <button id="btnSettings" class="p-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition">
@@ -95,13 +94,11 @@
     </div>
   </header>
 
-  <!-- Main Content Stage -->
   <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col justify-center items-center gap-6">
 
     <!-- Toast / Alert Container -->
     <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-    <!-- State 1: Idle / Lobby Card -->
     <div id="lobbySection" class="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden border border-gray-800">
       <div class="absolute -top-24 -right-24 w-60 h-60 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-24 -left-24 w-60 h-60 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -110,16 +107,16 @@
         <i class="fa-solid fa-headset animate-wave-float"></i>
       </div>
 
-      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Obrolan Suara Anonim</h2>
+      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Obrolan Suara Bebas Mantul</h2>
       <p class="text-gray-400 text-sm sm:text-base max-w-md mb-8">
-        Temukan teman ngobrol secara acak tanpa perlu daftar. Atau buat ruangan pribadi dengan kode ruangan!
+        Cari teman ngobrol secara instan tanpa gema, atau masuk ke ruangan dengan kode unik!
       </p>
 
       <!-- ID Info -->
       <div class="mb-6 flex flex-col items-center gap-2 w-full max-w-xs">
         <label class="text-xs font-semibold text-gray-400 uppercase tracking-widest">ID Ruangan Kamu</label>
         <div class="flex items-center justify-between w-full bg-gray-900/80 border border-gray-700 p-2 rounded-xl">
-          <span id="myPeerIdDisplay" class="text-indigo-400 font-mono text-sm px-2 truncate">Menghubungkan...</span>
+          <span id="myPeerIdDisplay" class="text-indigo-400 font-mono text-sm px-2 truncate">Menyiapkan Peer ID...</span>
           <button id="btnCopyId" class="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition text-xs" title="Salin ID">
             <i class="fa-solid fa-copy"></i>
           </button>
@@ -128,10 +125,9 @@
 
       <!-- Matchmaking Modes -->
       <div class="w-full space-y-4 mb-8">
-        <!-- Option A: Matchmaking Random -->
         <button id="btnStartRandom" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl shadow-indigo-600/30 hover:shadow-indigo-500/50 transition transform active:scale-95 flex items-center justify-center gap-3">
-          <i class="fa-solid fa-shuffle"></i>
-          <span>Cari Teman Ngobrol (Random)</span>
+          <i class="fa-solid fa-bolt"></i>
+          <span>Cari Teman Cepat (Fast Match)</span>
         </button>
 
         <div class="flex items-center gap-4 my-2">
@@ -140,7 +136,6 @@
           <div class="h-px bg-gray-800 flex-1"></div>
         </div>
 
-        <!-- Option B: Direct Room ID -->
         <div class="flex flex-col sm:flex-row gap-2">
           <input type="text" id="inputRoomCode" placeholder="Masukkan ID Ruangan Teman..." class="flex-1 bg-gray-900/90 border border-gray-700 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition">
           <button id="btnJoinRoom" class="py-3 px-6 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-semibold text-sm transition flex items-center justify-center gap-2 border border-gray-700">
@@ -150,11 +145,11 @@
         </div>
       </div>
 
-      <!-- Option C: Echo Test / AI Simulation -->
+      <!-- Self Test Mode -->
       <div class="w-full pt-4 border-t border-gray-800/80 flex items-center justify-between">
         <div class="text-left">
-          <p class="text-xs font-semibold text-gray-300">Uji Mikrofon (Self-Test)</p>
-          <p class="text-xs text-gray-500">Tes suara kamu tanpa lawan bicara</p>
+          <p class="text-xs font-semibold text-gray-300">Uji Mikrofon (Anti-Echo Test)</p>
+          <p class="text-xs text-gray-500">Pastikan mic dan speaker kamu jernih</p>
         </div>
         <button id="btnEchoTest" class="py-2 px-4 rounded-xl bg-gray-800/80 hover:bg-gray-700 text-indigo-400 text-xs font-bold border border-indigo-500/20 hover:border-indigo-500/40 transition">
           <i class="fa-solid fa-vial mr-1.5"></i> Tes Suara
@@ -162,52 +157,45 @@
       </div>
     </div>
 
-    <!-- State 2: Matchmaking Radar / Searching Screen -->
     <div id="searchingSection" class="hidden w-full max-w-xl glass-card rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl relative">
       <div class="relative w-40 h-40 flex items-center justify-center my-6">
         <div class="absolute inset-0 rounded-full border border-indigo-500/30 animate-radar"></div>
         <div class="absolute inset-2 rounded-full border border-indigo-500/20 animate-radar" style="animation-delay: 0.5s"></div>
         <div class="w-24 h-24 rounded-full bg-indigo-600/20 border border-indigo-500/50 flex items-center justify-center z-10 shadow-lg shadow-indigo-500/30">
-          <i class="fa-solid fa-radar text-indigo-400 text-4xl animate-spin" style="animation-duration: 4s;"></i>
+          <i class="fa-solid fa-radar text-indigo-400 text-4xl animate-spin" style="animation-duration: 3s;"></i>
         </div>
       </div>
 
-      <h3 class="text-xl font-bold text-white mb-1">Mencari Pasangan Ngobrol...</h3>
-      <p class="text-xs text-gray-400 mb-6">Menghubungkan kamu dengan pengguna lain secara acak</p>
+      <h3 class="text-xl font-bold text-white mb-1">Mencari Pasangan...</h3>
+      <p id="searchSubtext" class="text-xs text-gray-400 mb-6">Menghubungkan ke antrean matchmaking...</p>
 
       <button id="btnCancelSearch" class="py-2.5 px-6 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold text-sm transition">
         Batalkan Pencarian
       </button>
     </div>
 
-    <!-- State 3: Active Voice Call Stage -->
     <div id="callSection" class="hidden w-full flex flex-col items-center gap-6">
 
       <!-- Avatar & Audio Visualizer Container -->
       <div class="w-full max-w-2xl glass-card rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden border border-gray-800">
         
-        <!-- Timer & Call Quality Header -->
         <div class="w-full flex items-center justify-between mb-8">
           <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="callTypeLabel">Voice Call</span>
+            <span id="callTypeLabel">Terhubung (Anti-Echo Active)</span>
           </div>
           <div class="text-lg font-mono font-bold text-gray-300 tracking-wider" id="callTimer">00:00</div>
         </div>
 
         <!-- Canvas Equalizer & Avatar Stage -->
         <div class="relative w-full h-56 flex items-center justify-center">
-          
-          <!-- Background Dynamic Audio Canvas Visualizer -->
           <canvas id="audioVisualizer" class="absolute inset-0 w-full h-full rounded-2xl"></canvas>
 
-          <!-- Peer Avatars -->
           <div class="relative z-10 flex items-center justify-center gap-8 sm:gap-14">
-            
             <!-- Local User Avatar -->
             <div class="flex flex-col items-center gap-2">
               <div class="relative">
-                <div id="localSpeakingRing" class="absolute -inset-2 rounded-full bg-indigo-500/0 transition-all duration-200"></div>
+                <div id="localSpeakingRing" class="absolute -inset-2 rounded-full bg-indigo-500/0 transition-all duration-150"></div>
                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-indigo-700 to-indigo-500 border-2 border-indigo-400 flex items-center justify-center shadow-xl">
                   <i class="fa-solid fa-user text-2xl sm:text-3xl text-white"></i>
                 </div>
@@ -218,7 +206,6 @@
               <span class="text-xs font-semibold text-gray-300">Kamu</span>
             </div>
 
-            <!-- Connection Animated Dots -->
             <div class="flex items-center gap-1.5 text-indigo-400/60">
               <i class="fa-solid fa-waveform text-xl animate-pulse"></i>
             </div>
@@ -226,7 +213,7 @@
             <!-- Remote Peer Avatar -->
             <div class="flex flex-col items-center gap-2">
               <div class="relative">
-                <div id="remoteSpeakingRing" class="absolute -inset-2 rounded-full bg-purple-500/0 transition-all duration-200"></div>
+                <div id="remoteSpeakingRing" class="absolute -inset-2 rounded-full bg-purple-500/0 transition-all duration-150"></div>
                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-700 to-pink-500 border-2 border-purple-400 flex items-center justify-center shadow-xl">
                   <i id="remoteAvatarIcon" class="fa-solid fa-user-secret text-2xl sm:text-3xl text-white"></i>
                 </div>
@@ -234,42 +221,35 @@
                   <i class="fa-solid fa-volume-xmark"></i>
                 </div>
               </div>
-              <span id="remoteNameLabel" class="text-xs font-semibold text-gray-300">Pengguna Anonim</span>
+              <span id="remoteNameLabel" class="text-xs font-semibold text-gray-300">Teman Bicara</span>
             </div>
-
           </div>
         </div>
 
-        <!-- Peer Info Box -->
         <div class="mt-6 px-4 py-2 rounded-xl bg-gray-900/60 border border-gray-800 text-xs text-gray-400 flex items-center gap-2">
-          <i class="fa-solid fa-lock text-indigo-400"></i>
-          <span>Obrolan terenkripsi *End-to-End* via WebRTC</span>
+          <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+          <span>Suara Terenkripsi P2P & Peredam Pantulan Suara Aktif</span>
         </div>
       </div>
 
       <!-- Action Control Buttons Bar -->
       <div class="glass-card rounded-2xl px-6 py-4 flex items-center justify-center gap-4 sm:gap-6 border border-gray-800 shadow-2xl">
-        <!-- Toggle Mic -->
         <button id="btnToggleMic" class="w-14 h-14 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-200 flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg border border-gray-700" title="Mute / Unmute Mic">
           <i class="fa-solid fa-microphone" id="iconMic"></i>
         </button>
 
-        <!-- Toggle Deafen / Speaker -->
         <button id="btnToggleDeafen" class="w-14 h-14 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-200 flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg border border-gray-700" title="Matikan Suara Lawan">
           <i class="fa-solid fa-volume-high" id="iconDeafen"></i>
         </button>
 
-        <!-- Voice Effect Toggle Modal Trigger -->
         <button id="btnVoiceEffects" class="w-14 h-14 rounded-2xl bg-gray-800 hover:bg-indigo-600/30 hover:border-indigo-500/50 text-indigo-400 flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg border border-gray-700" title="Efek Suara / Filter">
           <i class="fa-solid fa-wand-magic-sparkles"></i>
         </button>
 
-        <!-- Skip / Next Match -->
         <button id="btnNextCall" class="w-14 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg shadow-indigo-600/30" title="Cari Teman Baru">
           <i class="fa-solid fa-forward-step"></i>
         </button>
 
-        <!-- End Call -->
         <button id="btnEndCall" class="w-14 h-14 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xl transition transform active:scale-95 shadow-lg shadow-rose-600/30" title="Akhiri Panggilan">
           <i class="fa-solid fa-phone-slash"></i>
         </button>
@@ -282,12 +262,11 @@
 
   </main>
 
-  <!-- Voice Effects Modal -->
   <div id="modalVoiceEffects" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
     <div class="glass-card rounded-3xl p-6 sm:p-8 w-full max-w-md border border-gray-800 shadow-2xl relative">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-sliders text-indigo-400"></i> Efek Suara & Mic
+          <i class="fa-solid fa-sliders text-indigo-400"></i> Pengaturan Mikrofon & Efek
         </h3>
         <button id="btnCloseModal" class="text-gray-400 hover:text-white transition">
           <i class="fa-solid fa-xmark text-lg"></i>
@@ -295,59 +274,60 @@
       </div>
 
       <div class="space-y-5">
-        <!-- Mic Gain Control -->
         <div>
           <div class="flex justify-between text-xs font-semibold text-gray-300 mb-2">
-            <span>Penguat Suara Mic (Volume Gain)</span>
+            <span>Sensitivitas Microphone (Gain)</span>
             <span id="gainValueText">100%</span>
           </div>
-          <input type="range" id="sliderGain" min="0" max="300" value="100" class="w-full accent-indigo-500 bg-gray-800 rounded-lg cursor-pointer">
+          <input type="range" id="sliderGain" min="0" max="200" value="100" class="w-full accent-indigo-500 bg-gray-800 rounded-lg cursor-pointer">
         </div>
 
-        <!-- Voice Filter Preset -->
         <div>
-          <label class="block text-xs font-semibold text-gray-300 mb-2">Filter Suara Suasana</label>
-          <div class="grid grid-cols-3 gap-2">
-            <button class="btn-preset py-2 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold transition" data-preset="normal">Normal</button>
-            <button class="btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition" data-preset="radio">Walkie-Talkie</button>
-            <button class="btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition" data-preset="cave">Gema / Cave</button>
+          <label class="block text-xs font-semibold text-gray-300 mb-2">Preset Filter Suara</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="btn-preset py-2 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold transition" data-preset="normal">Jernih (Default)</button>
+            <button class="btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition" data-preset="radio">Walkie Talkie</button>
           </div>
         </div>
 
         <div class="pt-4 border-t border-gray-800 flex justify-end">
           <button id="btnSaveEffects" class="py-2.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition">
-            Simpan Pengaturan
+            Simpan & Terapkan
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Footer Info -->
   <footer class="w-full py-4 text-center text-xs text-gray-600 border-t border-gray-900">
-    Voisa Web &copy; 2026 — P2P Voice Call via WebRTC & Web Audio API
+    Slipkol &copy; 2026 — Zero-Echo Matchmaking Voice Platform
   </footer>
 
   <script>
-    // App State Management
+    // State management
     let peer = null;
     let localStream = null;
     let activeCall = null;
     let isMuted = false;
     let isDeafened = false;
     let isEchoTest = false;
+    let isSearching = false;
 
-    // Web Audio API Elements
+    // Web Audio Context & Processing Nodes
     let audioCtx = null;
     let analyserNode = null;
     let gainNode = null;
-    let biquadFilter = null;
-    let delayNode = null;
+    let filterNode = null;
     let animFrameId = null;
 
-    // Timer state
+    // Timers & Queue
     let timerInterval = null;
     let callSeconds = 0;
+    let matchCheckInterval = null;
+    let heartbeatInterval = null;
+
+    // BroadcastChannel for sub-millisecond local cross-tab matching
+    const matchChannel = new BroadcastChannel('slipkol_matchmaking_v3');
 
     // DOM Elements
     const lobbySection = document.getElementById('lobbySection');
@@ -388,81 +368,73 @@
     }
 
     function initPeer() {
-      // Random prefix for matchmaking
-      const randomId = 'voisa-' + Math.random().toString(36).substring(2, 9);
-      peer = new Peer(randomId, {
-        debug: 1
-      });
+      const randomId = 'slipkol-' + Math.random().toString(36).substring(2, 9);
+      peer = new Peer(randomId, { debug: 1 });
 
       peer.on('open', (id) => {
-        console.log('Peer connected with ID:', id);
-        statusText.innerText = `Online (${id.substring(0, 10)}...)`;
+        console.log('Peer connected:', id);
+        statusText.innerText = `Online (${id.substring(8, 14)})`;
         document.getElementById('myPeerIdDisplay').innerText = id;
-        showToast('Terhubung ke jaringan PeerJS server', 'success');
+        showToast('Terhubung ke jaringan Slipkol Server', 'success');
       });
 
-      peer.on('call', (incomingCall) => {
-        // Handle incoming calls automatically
-        if (confirmCallAcceptance(incomingCall.peer)) {
-          getAudioPermission().then((stream) => {
-            if (!stream) return;
-            localStream = stream;
-            setupWebAudio(stream);
-
-            incomingCall.answer(stream);
-            handleCallStream(incomingCall);
-          });
+      peer.on('call', async (incomingCall) => {
+        if (isSearching) {
+          stopMatchmakingQueue();
         }
+
+        showToast('Menerima koneksi panggilan...', 'info');
+
+        const stream = await getAudioPermission();
+        if (!stream) {
+          incomingCall.close();
+          return;
+        }
+
+        localStream = stream;
+        setupWebAudio(stream);
+
+        incomingCall.answer(stream);
+        handleCallStream(incomingCall);
       });
 
       peer.on('error', (err) => {
         console.error('PeerJS error:', err);
-        showToast(`Koneksi error: ${err.type}`, 'error');
+        showToast(`Koneksi Peer: ${err.type}`, 'error');
+        if (isSearching) stopMatchmakingQueue();
         resetToLobby();
       });
-    }
-
-    document.getElementById('btnCopyId').addEventListener('click', () => {
-      if (!peer || !peer.id) return;
-      navigator.clipboard.writeText(peer.id).then(() => {
-        showToast('ID Ruangan berhasil disalin!', 'success');
-      }).catch(err => {
-        // Fallback
-        const textArea = document.createElement("textarea");
-        textArea.value = peer.id;
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          showToast('ID Ruangan berhasil disalin!', 'success');
-        } catch (err) {
-          showToast('Gagal menyalin ID', 'error');
-        }
-        document.body.removeChild(textArea);
-      });
-    });
-
-    function confirmCallAcceptance(peerId) {
-      // Auto accept or switch screen
-      showToast('Menerima panggilan masuk...', 'info');
-      return true;
     }
 
     async function getAudioPermission() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            echoCancellation: true,
+            echoCancellation: { exact: true },
             noiseSuppression: true,
-            autoGainControl: true
+            autoGainControl: true,
+            channelCount: 1, // Mono Audio prevents stereo crosstalk echo
+            suppressLocalAudioPlayback: true
           },
           video: false
         });
         return stream;
       } catch (err) {
-        showToast('Izin mikrofon ditolak! Izinkan akses mic di browser.', 'error');
-        return null;
+        // Fallback without exact constraint if strict constraint fails on older hardware
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            },
+            video: false
+          });
+          return fallbackStream;
+        } catch (e) {
+          showToast('Akses Mikrofon Ditolak! Izinkan akses mic browser.', 'error');
+          return null;
+        }
       }
     }
 
@@ -470,20 +442,33 @@
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
 
       const source = audioCtx.createMediaStreamSource(stream);
       analyserNode = audioCtx.createAnalyser();
       analyserNode.fftSize = 64;
 
       gainNode = audioCtx.createGain();
-      biquadFilter = audioCtx.createBiquadFilter();
-      delayNode = audioCtx.createDelay();
+      filterNode = audioCtx.createBiquadFilter();
+      filterNode.type = 'allpass';
 
-      // Audio Graph pipeline
+      // Graph: Mic -> Gain -> Filter -> Analyser
       source.connect(gainNode);
-      gainNode.connect(analyserNode);
+      gainNode.connect(filterNode);
+      filterNode.connect(analyserNode);
 
-      // Start canvas visualization
+      /* 
+       * CRITICAL ECHO PREVENTION:
+       * DO NOT connect analyserNode to audioCtx.destination for normal calls!
+       * Connecting to destination plays your own microphone into your speaker/headphones.
+       * Only connect to destination IF we are in Echo Test mode.
+       */
+      if (isEchoTest) {
+        analyserNode.connect(audioCtx.destination);
+      }
+
       startVisualizer();
     }
 
@@ -503,24 +488,21 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Calculate average volume for speaking ring
         let sum = 0;
         for (let i = 0; i < bufferLength; i++) {
           sum += dataArray[i];
         }
         const average = sum / bufferLength;
 
-        // Local Speaking indicator animation
         const localRing = document.getElementById('localSpeakingRing');
-        if (average > 15 && !isMuted) {
+        if (average > 12 && !isMuted) {
           localRing.style.backgroundColor = 'rgba(99, 102, 241, 0.4)';
-          localRing.style.transform = `scale(${1 + (average / 150)})`;
+          localRing.style.transform = `scale(${1 + (average / 140)})`;
         } else {
           localRing.style.backgroundColor = 'rgba(99, 102, 241, 0)';
           localRing.style.transform = 'scale(1)';
         }
 
-        // Draw dynamic wave visualizer bars
         const barWidth = (canvas.width / bufferLength) * 1.5;
         let x = 0;
 
@@ -544,28 +526,19 @@
     function handleCallStream(call) {
       activeCall = call;
 
-      // Clear status pencarian jika kita dipanggil saat sedang menunggu
-      if (window.waitingForRandom) {
-        localStorage.removeItem('voisa_waiting_peer');
-        window.waitingForRandom = false;
-      }
-
       call.on('stream', (remoteStream) => {
+        // Output remote voice cleanly to remoteAudio element
         remoteAudio.srcObject = remoteStream;
-        remoteAudio.play();
+        remoteAudio.volume = 1.0;
+        remoteAudio.play().catch(e => console.warn("Autoplay blocked:", e));
+
         startTimer();
 
-        // Switch UI to call screen
         lobbySection.classList.add('hidden');
         searchingSection.classList.add('hidden');
         callSection.classList.remove('hidden');
 
-        // Confetti effect on call connect
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.7 }
-        });
+        confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
       });
 
       call.on('close', () => {
@@ -579,60 +552,122 @@
       });
     }
 
-    document.getElementById('btnStartRandom').addEventListener('click', () => {
-      lobbySection.classList.add('hidden');
-      searchingSection.classList.remove('hidden');
-
-      // Trik Matchmaking menggunakan LocalStorage (khusus untuk tes 2 tab di browser yang sama)
-      const waitingPeer = localStorage.getItem('voisa_waiting_peer');
-      
-      if (waitingPeer && waitingPeer !== peer.id) {
-        // Ada tab lain yang sedang menunggu!
-        showToast('Menemukan teman! Menghubungkan...', 'success');
-        localStorage.removeItem('voisa_waiting_peer');
-        
-        setTimeout(() => {
-          startCallWithPeer(waitingPeer);
-        }, 1500);
-      } else {
-        // Belum ada yang menunggu, kita masuk ke antrean
-        localStorage.setItem('voisa_waiting_peer', peer.id);
-        window.waitingForRandom = true;
-        showToast('Mencari teman yang online...', 'info');
-      }
-    });
-
-    document.getElementById('btnJoinRoom').addEventListener('click', () => {
-      const code = inputRoomCode.value.trim();
-      if (!code) {
-        showToast('Masukkan ID Ruangan lawan!', 'error');
+    function startFastMatchmaking() {
+      if (!peer || !peer.id) {
+        showToast('Menunggu koneksi server...', 'error');
         return;
       }
-      startCallWithPeer(code);
-    });
 
-    document.getElementById('btnEchoTest').addEventListener('click', async () => {
-      isEchoTest = true;
-      const stream = await getAudioPermission();
-      if (!stream) return;
-
-      localStream = stream;
-      setupWebAudio(stream);
-
-      // Play local mic audio back to remote audio element with slight delay for test
-      remoteAudio.srcObject = stream;
-      remoteAudio.volume = 0.8;
-      
-      document.getElementById('callTypeLabel').innerText = 'Mode Uji Suara (Echo Test)';
-      document.getElementById('remoteNameLabel').innerText = 'Bot Uji Suara';
-
+      isSearching = true;
       lobbySection.classList.add('hidden');
-      callSection.classList.remove('hidden');
-      startTimer();
-      showToast('Mode Uji Suara Aktif! Bicara sekarang.', 'success');
-    });
+      searchingSection.classList.remove('hidden');
+      document.getElementById('searchSubtext').innerText = 'Memindai antrean pengguna online...';
+
+      // 1. Immediately purge stale queue members (>10 sec old)
+      cleanStaleQueue();
+
+      // 2. Check existing queue for potential partners
+      const waitingPeer = getBestWaitingPeer();
+
+      if (waitingPeer) {
+        showToast('Menemukan pasangan! Menghubungkan...', 'success');
+        removeFromQueue(waitingPeer);
+        startCallWithPeer(waitingPeer);
+      } else {
+        // 3. No one is waiting -> Register ourselves into public active pool
+        addToQueue();
+        
+        // Broadcast arrival to other tabs
+        matchChannel.postMessage({ type: 'SEARCHING', peerId: peer.id });
+
+        // Periodically ping and check queue
+        matchCheckInterval = setInterval(() => {
+          if (!isSearching) return;
+
+          cleanStaleQueue();
+          const target = getBestWaitingPeer();
+          if (target) {
+            showToast('Pasangan ditemukan! Memulai panggilan...', 'success');
+            stopMatchmakingQueue();
+            startCallWithPeer(target);
+          }
+        }, 800);
+
+        // Heartbeat keepalive every 2.5s
+        heartbeatInterval = setInterval(() => {
+          if (isSearching) addToQueue();
+        }, 2500);
+      }
+    }
+
+    function cleanStaleQueue() {
+      try {
+        let queue = JSON.parse(localStorage.getItem('slipkol_queue_v4') || '[]');
+        const now = Date.now();
+        // Remove entries older than 8 seconds or equal to own peer ID
+        queue = queue.filter(item => (now - item.time < 8000) && item.id !== peer.id);
+        localStorage.setItem('slipkol_queue_v4', JSON.stringify(queue));
+      } catch (e) {
+        localStorage.setItem('slipkol_queue_v4', '[]');
+      }
+    }
+
+    function getBestWaitingPeer() {
+      try {
+        const queue = JSON.parse(localStorage.getItem('slipkol_queue_v4') || '[]');
+        const candidate = queue.find(item => item.id !== peer.id);
+        return candidate ? candidate.id : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function addToQueue() {
+      try {
+        let queue = JSON.parse(localStorage.getItem('slipkol_queue_v4') || '[]');
+        queue = queue.filter(item => item.id !== peer.id);
+        queue.push({ id: peer.id, time: Date.now() });
+        localStorage.setItem('slipkol_queue_v4', JSON.stringify(queue));
+      } catch (e) {}
+    }
+
+    function removeFromQueue(peerIdToRemove) {
+      try {
+        let queue = JSON.parse(localStorage.getItem('slipkol_queue_v4') || '[]');
+        queue = queue.filter(item => item.id !== peerIdToRemove && item.id !== peer.id);
+        localStorage.setItem('slipkol_queue_v4', JSON.stringify(queue));
+      } catch (e) {}
+    }
+
+    function removeFromQueue(peerIdToRemove) {
+      try {
+        let queue = JSON.parse(localStorage.getItem('voisa_queue_v3') || '[]');
+        queue = queue.filter(item => item.id !== peerIdToRemove && item.id !== peer.id);
+        localStorage.setItem('voisa_queue_v3', JSON.stringify(queue));
+      } catch (e) {}
+    }
+
+    function stopMatchmakingQueue() {
+      isSearching = false;
+      if (matchCheckInterval) clearInterval(matchCheckInterval);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      removeFromQueue(peer.id);
+    }
+
+    // Listen to BroadcastChannel for instant local multi-tab matching
+    matchChannel.onmessage = (event) => {
+      if (event.data && event.data.type === 'SEARCHING' && isSearching) {
+        if (event.data.peerId !== peer.id) {
+          // Tab B noticed Tab A is searching!
+          stopMatchmakingQueue();
+          showToast('Pasangan ditemukan via Broadcast! Menghubungkan...', 'success');
+          startCallWithPeer(event.data.peerId);
+        }
+      }
+    };
 
     async function startCallWithPeer(targetPeerId) {
+      isEchoTest = false;
       const stream = await getAudioPermission();
       if (!stream) {
         resetToLobby();
@@ -642,16 +677,50 @@
       localStream = stream;
       setupWebAudio(stream);
 
+      showToast(`Menghubungi ${targetPeerId.substring(0, 10)}...`, 'info');
       const call = peer.call(targetPeerId, stream);
       handleCallStream(call);
     }
 
-    document.getElementById('btnCancelSearch').addEventListener('click', () => {
-      localStorage.removeItem('voisa_waiting_peer');
-      window.waitingForRandom = false;
-      resetToLobby();
+    document.getElementById('btnStartRandom').addEventListener('click', () => {
+      startFastMatchmaking();
     });
 
+    document.getElementById('btnCancelSearch').addEventListener('click', () => {
+      stopMatchmakingQueue();
+      resetToLobby();
+      showToast('Pencarian dibatalkan', 'info');
+    });
+
+    document.getElementById('btnJoinRoom').addEventListener('click', () => {
+      const code = inputRoomCode.value.trim();
+      if (!code) {
+        showToast('Masukkan ID Ruangan lawan!', 'error');
+        return;
+      }
+      stopMatchmakingQueue();
+      startCallWithPeer(code);
+    });
+
+    // Self Test Mode
+    document.getElementById('btnEchoTest').addEventListener('click', async () => {
+      isEchoTest = true;
+      const stream = await getAudioPermission();
+      if (!stream) return;
+
+      localStream = stream;
+      setupWebAudio(stream);
+
+      document.getElementById('callTypeLabel').innerText = 'Mode Uji Suara (Anti-Echo Test)';
+      document.getElementById('remoteNameLabel').innerText = 'Loopback Test Bot';
+
+      lobbySection.classList.add('hidden');
+      callSection.classList.remove('hidden');
+      startTimer();
+      showToast('Mode Uji Suara Aktif! Bicara untuk tes kualitas mic.', 'success');
+    });
+
+    // Toggle Mic Mute
     document.getElementById('btnToggleMic').addEventListener('click', () => {
       if (!localStream) return;
       isMuted = !isMuted;
@@ -665,7 +734,7 @@
         icon.className = 'fa-solid fa-microphone-slash';
         btn.classList.add('bg-rose-600', 'text-white');
         badge.classList.remove('hidden');
-        showToast('Mikrofon dimatikan', 'info');
+        showToast('Mikrofon dimatikan (Muted)', 'info');
       } else {
         icon.className = 'fa-solid fa-microphone';
         btn.classList.remove('bg-rose-600', 'text-white');
@@ -674,6 +743,7 @@
       }
     });
 
+    // Toggle Deafen
     document.getElementById('btnToggleDeafen').addEventListener('click', () => {
       isDeafened = !isDeafened;
       remoteAudio.muted = isDeafened;
@@ -691,7 +761,7 @@
         icon.className = 'fa-solid fa-volume-high';
         btn.classList.remove('bg-rose-600', 'text-white');
         badge.classList.add('hidden');
-        showToast('Suara lawan diaktifkan', 'success');
+        showToast('Suara lawan diaktifkan kembali', 'success');
       }
     });
 
@@ -701,10 +771,14 @@
 
     document.getElementById('btnNextCall').addEventListener('click', () => {
       endActiveCall();
-      document.getElementById('btnStartRandom').click();
+      setTimeout(() => {
+        startFastMatchmaking();
+      }, 300);
     });
 
     function endActiveCall() {
+      stopMatchmakingQueue();
+
       if (activeCall) {
         activeCall.close();
         activeCall = null;
@@ -721,7 +795,7 @@
 
       stopTimer();
       resetToLobby();
-      showToast('Panggilan diakhiri', 'info');
+      showToast('Panggilan selesai', 'info');
     }
 
     function resetToLobby() {
@@ -746,36 +820,60 @@
       clearInterval(timerInterval);
     }
 
+    // Copy Peer ID to clipboard
+    document.getElementById('btnCopyId').addEventListener('click', () => {
+      if (!peer || !peer.id) return;
+      const textArea = document.createElement("textarea");
+      textArea.value = peer.id;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('ID Ruangan berhasil disalin!', 'success');
+      } catch (err) {
+        showToast('Gagal menyalin ID', 'error');
+      }
+      document.body.removeChild(textArea);
+    });
+
+    // Voice Effect Modal Listeners
     const modalVoiceEffects = document.getElementById('modalVoiceEffects');
-    document.getElementById('btnVoiceEffects').addEventListener('click', () => {
-      modalVoiceEffects.classList.remove('hidden');
-    });
-
-    document.getElementById('btnCloseModal').addEventListener('click', () => {
-      modalVoiceEffects.classList.add('hidden');
-    });
-
+    document.getElementById('btnVoiceEffects').addEventListener('click', () => modalVoiceEffects.classList.remove('hidden'));
+    document.getElementById('btnCloseModal').addEventListener('click', () => modalVoiceEffects.classList.add('hidden'));
     document.getElementById('btnSaveEffects').addEventListener('click', () => {
       modalVoiceEffects.classList.add('hidden');
-      showToast('Efek suara diterapkan', 'success');
+      showToast('Pengaturan microphone disimpan', 'success');
     });
 
     document.getElementById('sliderGain').addEventListener('input', (e) => {
       const val = e.target.value;
       document.getElementById('gainValueText').innerText = `${val}%`;
-      if (gainNode) {
-        gainNode.gain.value = val / 100;
-      }
+      if (gainNode) gainNode.gain.value = val / 100;
     });
 
-    // Preset selection
+    // Presets
     document.querySelectorAll('.btn-preset').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.btn-preset').forEach(b => {
           b.className = 'btn-preset py-2 px-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold transition';
         });
         e.target.className = 'btn-preset py-2 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold transition';
+        
+        const preset = e.target.getAttribute('data-preset');
+        if (filterNode) {
+          if (preset === 'radio') {
+            filterNode.type = 'bandpass';
+            filterNode.frequency.value = 1800;
+          } else {
+            filterNode.type = 'allpass';
+          }
+        }
       });
+    });
+
+    // Clean up on window close
+    window.addEventListener('beforeunload', () => {
+      if (peer) removeFromQueue(peer.id);
     });
 
     window.addEventListener('load', () => {
