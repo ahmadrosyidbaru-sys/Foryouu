@@ -104,6 +104,17 @@
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
+    <!-- Banner Buka Kunci Suara Autoplay Browser -->
+    <div id="autoplayBanner" class="hidden w-full max-w-xl bg-amber-500/20 border border-amber-500/50 rounded-2xl p-4 flex items-center justify-between text-amber-200 text-xs font-semibold shadow-lg backdrop-blur-md">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-volume-xmark text-lg text-amber-400 animate-bounce"></i>
+        <span>Browser memblokir suara otomatis. Klik tombol ini untuk mengaktifkan audio!</span>
+      </div>
+      <button id="btnUnlockAudio" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold rounded-xl transition shadow">
+        Aktifkan Suara
+      </button>
+    </div>
+
     <!-- Lobby Section -->
     <div id="lobbySection" class="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden border border-gray-800">
       <div class="absolute -top-24 -right-24 w-60 h-60 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -257,7 +268,7 @@
     </div>
 
     <!-- Hidden HTML5 Audio Element for Remote Stream -->
-    <audio id="remoteAudio" autoplay class="hidden"></audio>
+    <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
   </main>
 
   <div id="modalVoiceEffects" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -316,10 +327,12 @@
     // Web Audio Context & Processing Nodes
     let audioCtx = null;
     let analyserNode = null;
+    let remoteAnalyserNode = null;
     let gainNode = null;
     let filterNode = null;
     let processedDestinationNode = null;
     let animFrameId = null;
+    let remoteAnimFrameId = null;
 
     // Timers & Queue
     let timerInterval = null;
@@ -340,69 +353,150 @@
     const statusText = document.getElementById('statusText');
     const statusPingDot = document.getElementById('statusPingDot');
     const statusPingPulse = document.getElementById('statusPingPulse');
+    const autoplayBanner = document.getElementById('autoplayBanner');
+    const btnUnlockAudio = document.getElementById('btnUnlockAudio');
 
     function showToast(message, type = 'info') {
-      const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
+      toast.className = `p-3 rounded-xl shadow-lg text-xs font-semibold text-white transition-all duration-300 transform translate-y-0 opacity-100 ${
+        type === 'error' ? 'bg-rose-500' : type === 'success' ? 'bg-emerald-500' : 'bg-indigo-500'
+      }`;
+      toast.innerHTML = `<div class="flex items-center gap-2"><i class="fa-solid ${type === 'error' ? 'fa-triangle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${message}</span></div>`;
       
-      const colors = {
-        info: 'border-indigo-500 bg-gray-900 text-indigo-300',
-        success: 'border-emerald-500 bg-gray-900 text-emerald-300',
-        error: 'border-rose-500 bg-gray-900 text-rose-300'
-      };
-
-      toast.className = `pointer-events-auto flex items-center justify-between p-3.5 rounded-xl border ${colors[type]} shadow-xl text-xs font-semibold transition duration-300 transform translate-y-2 opacity-0`;
-      toast.innerHTML = `
-        <div class="flex items-center gap-2">
-          <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i>
-          <span>${message}</span>
-        </div>
-      `;
-
+      const container = document.getElementById('toastContainer');
       container.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
-
+      
       setTimeout(() => {
-        toast.classList.add('opacity-0');
+        toast.classList.replace('opacity-100', 'opacity-0');
+        toast.classList.replace('translate-y-0', '-translate-y-4');
         setTimeout(() => toast.remove(), 300);
-      }, 3500);
+      }, 3000);
     }
 
     function initMatchmakingNetwork() {
-      // Connect using port 8084 (SSL/TLS WebSocket) to support HTTPS environments
-      mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
-        keepalive: 30,
-        clientId: 'slipkol_client_' + Math.random().toString(16).substring(2, 8)
-      });
+      const clientId = 'slipkol_web_' + Math.random().toString(16).substring(2, 10);
+      const host = 'wss://broker.emqx.io:8084/mqtt'; // Public secure WS
       
-      mqttClient.on('connect', () => {
-        console.log('Terhubung ke Broker Matchmaking Global MQTT');
-        statusPingDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
-        statusPingPulse.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-      });
+      try {
+        mqttClient = mqtt.connect(host, {
+          clientId: clientId,
+          clean: true,
+          connectTimeout: 4000,
+          reconnectPeriod: 2000,
+        });
 
-      mqttClient.on('error', (err) => {
-        console.warn('MQTT Connection error:', err);
-      });
+        mqttClient.on('connect', () => {
+          console.log('MQTT Global Matchmaking Connected');
+          document.getElementById('statusPingPulse').classList.replace('bg-amber-400', 'bg-emerald-400');
+          document.getElementById('statusPingDot').classList.replace('bg-amber-500', 'bg-emerald-500');
+        });
 
-      mqttClient.on('message', (topic, message) => {
-        if (!isSearching || topic !== MATCH_TOPIC) return;
-        
-        try {
-          const data = JSON.parse(message.toString());
-          // If another active user is searching
-          if (data.id && peer && data.id !== peer.id) {
-            handleMatchFound(data.id);
+        mqttClient.on('message', (topic, message) => {
+          if (topic === MATCH_TOPIC && isSearching) {
+            try {
+              const data = JSON.parse(message.toString());
+              if (data.id && data.id !== peer.id) {
+                handleMatchFound(data.id);
+              }
+            } catch(e) {}
           }
-        } catch (e) {
-          console.error("Match data decode error", e);
+        });
+      } catch (err) {
+        console.error("MQTT Init Error:", err);
+      }
+    }
+
+    function startVisualizer() {
+      const canvas = document.getElementById('audioVisualizer');
+      const canvasCtx = canvas.getContext('2d');
+      if (!canvas || !canvasCtx || !analyserNode) return;
+      
+      canvas.width = canvas.offsetWidth || 600;
+      canvas.height = canvas.offsetHeight || 200;
+      
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      function draw() {
+        animFrameId = requestAnimationFrame(draw);
+        
+        analyserNode.getByteTimeDomainData(dataArray);
+        
+        canvasCtx.fillStyle = 'rgba(11, 15, 25, 0.4)'; 
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        canvasCtx.lineWidth = 3;
+        canvasCtx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
+        
+        canvasCtx.beginPath();
+        const sliceWidth = canvas.width * 1.0 / bufferLength;
+        let x = 0;
+        let sum = 0;
+        
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = v * canvas.height / 2;
+          if (i === 0) canvasCtx.moveTo(x, y);
+          else canvasCtx.lineTo(x, y);
+          x += sliceWidth;
+          sum += Math.abs(dataArray[i] - 128);
+        }
+        
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+        
+        const avg = sum / bufferLength;
+        const localRing = document.getElementById('localSpeakingRing');
+        if (avg > 3 && !isMuted) {
+          localRing.style.backgroundColor = 'rgba(99, 102, 241, 0.4)';
+          localRing.style.transform = `scale(${1 + (avg / 60)})`;
+        } else {
+          localRing.style.backgroundColor = 'rgba(99, 102, 241, 0)';
+          localRing.style.transform = 'scale(1)';
+        }
+      }
+      draw();
+    }
+
+    function showAutoplayBanner() {
+      if (autoplayBanner) autoplayBanner.classList.remove('hidden');
+    }
+
+    function hideAutoplayBanner() {
+      if (autoplayBanner) autoplayBanner.classList.add('hidden');
+    }
+
+    if (btnUnlockAudio) {
+      btnUnlockAudio.addEventListener('click', () => {
+        if (remoteAudio) {
+          remoteAudio.play().then(() => {
+            hideAutoplayBanner();
+            showToast('Suara berhasil diaktifkan!', 'success');
+          }).catch(e => console.error(e));
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
         }
       });
     }
 
     function initPeer() {
       const randomId = 'slipkol-' + Math.random().toString(36).substring(2, 9);
-      peer = new Peer(randomId, { debug: 1 });
+      
+      // Multi-STUN ICE Server configuration to cross cellular NAT & firewalls
+      peer = new Peer(randomId, {
+        debug: 1,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        }
+      });
 
       peer.on('open', (id) => {
         statusText.innerText = `Online (${id.substring(8, 14)})`;
@@ -460,79 +554,122 @@
         }
       }
 
-      // Construct Web Audio DSP Node Pipeline
+      // Ensure AudioContext is initialized and active
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-      const source = audioCtx.createMediaStreamSource(localRawStream);
-      analyserNode = audioCtx.createAnalyser();
-      analyserNode.fftSize = 64;
+      try {
+        const source = audioCtx.createMediaStreamSource(localRawStream);
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 64;
 
-      gainNode = audioCtx.createGain();
-      const currentGain = document.getElementById('sliderGain').value;
-      gainNode.gain.value = currentGain / 100;
+        gainNode = audioCtx.createGain();
+        const currentGain = document.getElementById('sliderGain').value;
+        gainNode.gain.value = currentGain / 100;
 
-      filterNode = audioCtx.createBiquadFilter();
-      filterNode.type = 'allpass'; // Default clean
+        filterNode = audioCtx.createBiquadFilter();
+        filterNode.type = 'allpass'; // Default clean
 
-      // Create stream destination to pass processed audio over WebRTC!
-      processedDestinationNode = audioCtx.createMediaStreamDestination();
+        // Create stream destination to pass processed audio over WebRTC
+        processedDestinationNode = audioCtx.createMediaStreamDestination();
 
-      source.connect(gainNode);
-      gainNode.connect(filterNode);
-      filterNode.connect(analyserNode);
-      filterNode.connect(processedDestinationNode);
+        source.connect(gainNode);
+        gainNode.connect(filterNode);
+        filterNode.connect(analyserNode);
+        filterNode.connect(processedDestinationNode);
 
-      if (isEchoTest) {
-        analyserNode.connect(audioCtx.destination);
+        if (isEchoTest) {
+          analyserNode.connect(audioCtx.destination);
+        }
+
+        startVisualizer();
+        localProcessedStream = processedDestinationNode.stream;
+        return localProcessedStream;
+      } catch (dspErr) {
+        console.warn("Web Audio DSP fallback to raw stream:", dspErr);
+        // Fallback to raw stream if DSP creation fails on older devices
+        return localRawStream;
       }
-
-      startVisualizer();
-      localProcessedStream = processedDestinationNode.stream;
-      return localProcessedStream;
     }
 
-    function startVisualizer() {
-      const canvas = document.getElementById('audioVisualizer');
-      const ctx = canvas.getContext('2d');
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+    function handleCallStream(call) {
+      activeCall = call;
 
-      const bufferLength = analyserNode.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      function renderFrame() {
-        animFrameId = requestAnimationFrame(renderFrame);
-        analyserNode.getByteFrequencyData(dataArray);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-        const average = sum / bufferLength;
-
-        const localRing = document.getElementById('localSpeakingRing');
-        if (average > 10 && !isMuted) {
-          localRing.style.backgroundColor = 'rgba(99, 102, 241, 0.4)';
-          localRing.style.transform = `scale(${1 + (average / 140)})`;
-        } else {
-          localRing.style.backgroundColor = 'rgba(99, 102, 241, 0)';
-          localRing.style.transform = 'scale(1)';
+      call.on('stream', (remoteStream) => {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
         }
 
-        const barWidth = (canvas.width / bufferLength) * 1.5;
-        let x = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          const barHeight = (dataArray[i] / 255) * canvas.height * 0.7;
-          const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-          gradient.addColorStop(0, 'rgba(99, 102, 241, 0.1)');
-          gradient.addColorStop(1, 'rgba(168, 85, 247, 0.6)');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
-          x += barWidth + 2;
+        remoteAudio.srcObject = remoteStream;
+        remoteAudio.volume = 1.0;
+        remoteAudio.muted = false;
+
+        // Play remote audio with browser policy check
+        const playPromise = remoteAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            hideAutoplayBanner();
+            showToast('Suara terhubung & jernih!', 'success');
+          }).catch(err => {
+            console.warn("Autoplay terhalang oleh browser policy:", err);
+            showAutoplayBanner();
+            showToast('Klik "Aktifkan Suara" untuk mendengar lawan bicara', 'error');
+          });
         }
+
+        // Setup Audio Monitoring for remote voice visualizer ring
+        setupRemoteAudioMonitoring(remoteStream);
+
+        startTimer();
+        lobbySection.classList.add('hidden');
+        searchingSection.classList.add('hidden');
+        callSection.classList.remove('hidden');
+
+        confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
+      });
+
+      call.on('close', () => {
+        showToast('Panggilan diakhiri', 'info');
+        endActiveCall();
+      });
+
+      call.on('error', (err) => {
+        showToast('Panggilan terputus', 'error');
+        endActiveCall();
+      });
+    }
+
+    function setupRemoteAudioMonitoring(stream) {
+      if (!audioCtx) return;
+      try {
+        const remoteSource = audioCtx.createMediaStreamSource(stream);
+        remoteAnalyserNode = audioCtx.createAnalyser();
+        remoteAnalyserNode.fftSize = 64;
+        remoteSource.connect(remoteAnalyserNode);
+
+        const dataArray = new Uint8Array(remoteAnalyserNode.frequencyBinCount);
+        const remoteRing = document.getElementById('remoteSpeakingRing');
+
+        function checkRemoteVolume() {
+          remoteAnimFrameId = requestAnimationFrame(checkRemoteVolume);
+          remoteAnalyserNode.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const average = sum / dataArray.length;
+
+          if (average > 10 && !isDeafened) {
+            remoteRing.style.backgroundColor = 'rgba(168, 85, 247, 0.4)';
+            remoteRing.style.transform = `scale(${1 + (average / 140)})`;
+          } else {
+            remoteRing.style.backgroundColor = 'rgba(168, 85, 247, 0)';
+            remoteRing.style.transform = 'scale(1)';
+          }
+        }
+        checkRemoteVolume();
+      } catch (e) {
+        console.warn("Remote audio monitoring failed:", e);
       }
-      renderFrame();
     }
 
     function startFastMatchmaking() {
@@ -591,33 +728,6 @@
 
       const call = peer.call(targetPeerId, stream);
       handleCallStream(call);
-    }
-
-    function handleCallStream(call) {
-      activeCall = call;
-
-      call.on('stream', (remoteStream) => {
-        remoteAudio.srcObject = remoteStream;
-        remoteAudio.volume = 1.0;
-        remoteAudio.play().catch(e => console.warn("Autoplay audio handling:", e));
-
-        startTimer();
-        lobbySection.classList.add('hidden');
-        searchingSection.classList.add('hidden');
-        callSection.classList.remove('hidden');
-
-        confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
-      });
-
-      call.on('close', () => {
-        showToast('Panggilan diakhiri', 'info');
-        endActiveCall();
-      });
-
-      call.on('error', (err) => {
-        showToast('Panggilan terputus', 'error');
-        endActiveCall();
-      });
     }
 
     document.getElementById('btnStartRandom').addEventListener('click', startFastMatchmaking);
@@ -696,9 +806,11 @@
 
     function endActiveCall() {
       stopMatchmakingQueue();
+      hideAutoplayBanner();
       if (activeCall) { activeCall.close(); activeCall = null; }
       if (localRawStream) { localRawStream.getTracks().forEach(t => t.stop()); localRawStream = null; }
       if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (remoteAnimFrameId) cancelAnimationFrame(remoteAnimFrameId);
       stopTimer();
       resetToLobby();
     }
