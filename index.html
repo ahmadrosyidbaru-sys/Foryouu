@@ -79,7 +79,7 @@
           <h1 class="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-indigo-300">
             Slip<span class="text-indigo-400">kol</span>
           </h1>
-          <p class="text-xs text-gray-400 font-medium">Realtime Voice Chat & Matchmaking</p>
+          <p class="text-xs text-gray-400 font-medium">Mengobrol dengan orang baru</p>
         </div>
       </div>
 
@@ -124,9 +124,9 @@
         <i class="fa-solid fa-headset animate-wave-float"></i>
       </div>
 
-      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Obrolan Suara Bebas Mantul</h2>
+      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Obrolan Suara Bebas</h2>
       <p class="text-gray-400 text-sm sm:text-base max-w-md mb-8">
-        Cari teman ngobrol secara instan tanpa gema, lengkap dengan penguat mic & filter suara!
+        Cari teman dan mengobrol secara instan!
       </p>
 
       <div class="mb-6 flex flex-col items-center gap-2 w-full max-w-xs">
@@ -142,7 +142,7 @@
       <div class="w-full space-y-4 mb-8">
         <button id="btnStartRandom" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl shadow-indigo-600/30 hover:shadow-indigo-500/50 transition transform active:scale-95 flex items-center justify-center gap-3">
           <i class="fa-solid fa-bolt"></i>
-          <span>Cari Teman Cepat (Fast Match)</span>
+          <span>Cari Teman Sekarang</span>
         </button>
 
         <div class="flex items-center gap-4 my-2">
@@ -310,7 +310,7 @@
   </div>
 
   <footer class="w-full py-4 text-center text-xs text-gray-600 border-t border-gray-900">
-    Slipkol &copy; 2026 — Zero-Echo Matchmaking Voice Platform
+    Slipkol &copy; 2026 — Made by @onyeanteng
   </footer>
 
   <script>
@@ -499,7 +499,7 @@
       });
 
       peer.on('open', (id) => {
-        statusText.innerText = `Online (${id.substring(8, 14)})`;
+        statusText.innerText = `Aktif (${id.substring(8, 14)})`;
         document.getElementById('myPeerIdDisplay').innerText = id;
         showToast('Terhubung ke jaringan P2P Server', 'success');
         
